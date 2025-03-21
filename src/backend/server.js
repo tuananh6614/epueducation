@@ -8,7 +8,7 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+const JWT_SECRET = 'TYnh&j1VK8$p2^C@4XZrQ7*sW!9mDgEb'; // JWT Secret mạnh
 
 // Middleware
 app.use(cors());
@@ -20,7 +20,7 @@ const createConnection = async () => {
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'quizcoursehub'
+    database: 'learningplatform' // Tên database đã được cập nhật
   });
 };
 
@@ -286,13 +286,13 @@ app.get('/api/user', authenticateToken, async (req, res) => {
 // For development only - do not use in production
 app.get('/api/setup', async (req, res) => {
   res.json({
-    message: 'Backend is running. Please set up the database and tables according to the README.'
+    message: 'Backend đang chạy. Vui lòng thiết lập cơ sở dữ liệu và bảng theo README.'
   });
 });
 
 // Server start
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server đang chạy trên cổng ${PORT}`);
 });
 
 module.exports = app;

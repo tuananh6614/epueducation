@@ -1,50 +1,62 @@
 
-# Backend for Education Platform
+# Backend cho Nền tảng Học tập Trực tuyến
 
-This folder contains backend code for the Education Platform application.
+Thư mục này chứa mã nguồn backend cho ứng dụng Nền tảng Học tập Trực tuyến.
 
-## How to Run the Backend
+## Cách chạy Backend
 
-Since we can't directly modify `package.json` to add the backend dependencies, you'll need to set up and run the backend separately:
+Do chúng ta không thể trực tiếp sửa đổi tệp `package.json` để thêm các phụ thuộc backend, bạn cần thiết lập và chạy backend riêng biệt:
 
-1. Create a new directory for the backend outside this project
-2. Initialize a new Node.js project: `npm init -y`
-3. Install required dependencies:
+1. Tạo một thư mục mới cho backend bên ngoài dự án này
+2. Khởi tạo một dự án Node.js mới: `npm init -y`
+3. Cài đặt các phụ thuộc cần thiết:
    ```
    npm install express cors body-parser mysql2 bcryptjs jsonwebtoken
    ```
-4. Copy the `server.js` file from this folder to your backend directory
-5. Run the server: `node server.js`
+4. Sao chép tệp `server.js` từ thư mục này vào thư mục backend của bạn
+5. Chạy server: `node server.js`
 
-The backend will run on port 5000 by default.
+Backend sẽ chạy trên cổng 5000 theo mặc định.
 
-## API Endpoints
+## Thiết lập Cơ sở dữ liệu
 
-### Authentication
-- POST `/api/register` - Register a new user
-- POST `/api/login` - Login user
+Đảm bảo bạn có một cơ sở dữ liệu MySQL tên là `learningplatform`. Bạn có thể tạo cơ sở dữ liệu và các bảng cần thiết bằng cách chạy lệnh SQL trong tệp `database.sql`.
 
-### Courses
-- GET `/api/courses` - Get all courses
-- GET `/api/courses/:id` - Get a specific course with its lessons and quizzes
-
-### User
-- GET `/api/user` - Get current user information (protected route)
-
-## Database Setup
-
-Ensure you have a MySQL database named `quizcoursehub` with the following tables:
+Cấu trúc cơ sở dữ liệu bao gồm các bảng sau:
 - users
+- categories
 - courses
 - lessons
 - quizzes
 - questions
 - answers
-- courseenrollments
-- blogposts
+- course_enrollments
+- lesson_progress
+- quiz_attempts
+- user_answers
+- reviews
+- blog_posts
 - comments
 - resources
-- purchasehistory
 - transactions
+- purchase_history
 
-The database structure should match the SQL schema provided in the project requirements.
+## Mã JWT Secret
+
+JWT_SECRET được sử dụng để ký và xác minh JSON Web Tokens (JWT) khi người dùng đăng nhập. Đây là một khóa bí mật quan trọng cho bảo mật ứng dụng.
+
+Trong môi trường sản xuất thực tế, JWT_SECRET nên được lưu trữ dưới dạng biến môi trường, không nên cố định trong mã nguồn.
+
+## API Endpoints
+
+### Xác thực
+- POST `/api/register` - Đăng ký người dùng mới
+- POST `/api/login` - Đăng nhập người dùng
+
+### Khóa học
+- GET `/api/courses` - Lấy tất cả khóa học
+- GET `/api/courses/:id` - Lấy thông tin một khóa học cụ thể với các bài học và bài kiểm tra
+
+### Người dùng
+- GET `/api/user` - Lấy thông tin người dùng hiện tại (route được bảo vệ)
+
