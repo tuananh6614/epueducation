@@ -11,11 +11,11 @@ const Navbar = () => {
   const location = useLocation();
 
   const navLinks = [
-    { name: 'Home', href: '/' },
-    { name: 'Courses', href: '/courses' },
-    { name: 'Blog', href: '/blog' },
-    { name: 'Resources', href: '/resources' },
-    { name: 'About', href: '/about' },
+    { name: 'Trang chủ', href: '/' },
+    { name: 'Khóa học', href: '/courses' },
+    { name: 'Bài viết', href: '/blog' },
+    { name: 'Tài nguyên', href: '/resources' },
+    { name: 'Giới thiệu', href: '/about' },
   ];
 
   useEffect(() => {
@@ -67,10 +67,10 @@ const Navbar = () => {
 
         <div className="hidden md:flex items-center gap-4">
           <Button variant="outline" size="sm" asChild>
-            <Link to="/login">Sign In</Link>
+            <Link to="/login">Đăng nhập</Link>
           </Button>
           <Button size="sm" asChild>
-            <Link to="/register">Sign Up</Link>
+            <Link to="/register">Đăng ký</Link>
           </Button>
         </div>
 
@@ -114,10 +114,10 @@ const Navbar = () => {
           </nav>
           <div className="grid grid-cols-2 gap-4 mt-2">
             <Button variant="outline" className="w-full" asChild>
-              <Link to="/login">Sign In</Link>
+              <Link to="/login">Đăng nhập</Link>
             </Button>
             <Button className="w-full" asChild>
-              <Link to="/register">Sign Up</Link>
+              <Link to="/register">Đăng ký</Link>
             </Button>
           </div>
         </div>

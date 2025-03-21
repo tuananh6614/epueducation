@@ -69,8 +69,8 @@ export default {
 				}
 			},
 			fontFamily: {
-				sans: ['Inter var', 'sans-serif'],
-				display: ['SF Pro Display', 'Inter var', 'sans-serif']
+				sans: ['Roboto', 'Noto Sans', 'Inter var', 'sans-serif'],
+				display: ['Roboto', 'Noto Sans', 'SF Pro Display', 'Inter var', 'sans-serif']
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
