@@ -12,6 +12,45 @@ import { BookOpen, Clock, Award, PlayCircle, BarChart, CheckCircle, User, Star, 
 import { Course } from '@/types';
 import NotFound from './NotFound';
 
+// CourseCard component
+const CourseCard = ({ course }: { course: Course }) => {
+  return (
+    <Card className="h-full">
+      <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+        <img 
+          src={course.thumbnail} 
+          alt={course.title} 
+          className="w-full h-full object-cover transition-transform hover:scale-105"
+        />
+      </div>
+      <CardContent className="p-6">
+        <div className="flex flex-wrap gap-2 mb-2">
+          {course.categories?.slice(0, 2).map((category, idx) => (
+            <Badge key={idx} variant="outline">
+              {category}
+            </Badge>
+          ))}
+        </div>
+        <h3 className="text-xl font-medium mb-2 line-clamp-2">
+          <Link to={`/courses/${course.course_id}`} className="hover:text-primary">
+            {course.title}
+          </Link>
+        </h3>
+        <p className="text-muted-foreground mb-4 line-clamp-2">
+          {course.description}
+        </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Star className="h-4 w-4 text-yellow-500 mr-1" />
+            <span className="text-sm">{course.rating}</span>
+          </div>
+          <div className="font-medium">${course.price?.toFixed(2)}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const [activeTab, setActiveTab] = useState('overview');
@@ -73,7 +112,7 @@ const CourseDetail = () => {
         name: 'Alex Thompson',
         rating: 5,
         date: '2 weeks ago',
-        comment: 'This course exceeded my expectations. The content is well-structured and the instructor explains complex concepts in a way that's easy to understand.'
+        comment: 'This course exceeded my expectations. The content is well-structured and the instructor explains complex concepts in a way that\'s easy to understand.'
       },
       {
         id: 2,
@@ -87,7 +126,7 @@ const CourseDetail = () => {
         name: 'Marcus Johnson',
         rating: 5,
         date: '2 months ago',
-        comment: 'One of the best courses I've taken online. Very comprehensive and the instructor is clearly knowledgeable about the subject matter.'
+        comment: 'One of the best courses I\'ve taken online. Very comprehensive and the instructor is clearly knowledgeable about the subject matter.'
       }
     ]
   };
