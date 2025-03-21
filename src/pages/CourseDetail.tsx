@@ -65,68 +65,68 @@ const CourseDetail = () => {
   // Mock data for the course
   const courseDetails = {
     lessons: 42,
-    duration: course.duration || '36 hours',
-    level: 'Intermediate',
-    language: 'English',
+    duration: course.duration || '36 giờ',
+    level: 'Trung cấp',
+    language: 'Tiếng Việt',
     certificate: true,
-    lastUpdated: '2 months ago',
+    lastUpdated: '2 tháng trước',
     whatYouWillLearn: [
-      'Build modern and responsive web applications',
-      'Understand core programming concepts and patterns',
-      'Work with databases and APIs effectively',
-      'Deploy applications to production environments',
-      'Implement best practices for security and performance',
-      'Collaborate with other developers using industry tools'
+      'Xây dựng ứng dụng web hiện đại và có tính phản hồi',
+      'Hiểu các khái niệm và mô hình lập trình cốt lõi',
+      'Làm việc hiệu quả với cơ sở dữ liệu và API',
+      'Triển khai ứng dụng lên môi trường sản xuất',
+      'Áp dụng các biện pháp tốt nhất để đảm bảo bảo mật và hiệu suất',
+      'Hợp tác với các nhà phát triển khác sử dụng công cụ chuyên nghiệp'
     ],
     curriculum: [
       {
-        title: 'Getting Started',
+        title: 'Bắt đầu',
         lessons: [
-          { title: 'Course Introduction', duration: '10 min', isPreview: true },
-          { title: 'Setting Up Your Environment', duration: '20 min', isPreview: false },
-          { title: 'Understanding the Basics', duration: '25 min', isPreview: false }
+          { title: 'Giới thiệu khóa học', duration: '10 phút', isPreview: true },
+          { title: 'Thiết lập môi trường của bạn', duration: '20 phút', isPreview: false },
+          { title: 'Hiểu về các kiến thức cơ bản', duration: '25 phút', isPreview: false }
         ]
       },
       {
-        title: 'Core Concepts',
+        title: 'Khái niệm cốt lõi',
         lessons: [
-          { title: 'Fundamental Principles', duration: '30 min', isPreview: true },
-          { title: 'Advanced Techniques', duration: '45 min', isPreview: false },
-          { title: 'Practical Applications', duration: '40 min', isPreview: false },
-          { title: 'Problem Solving Approaches', duration: '35 min', isPreview: false }
+          { title: 'Nguyên tắc cơ bản', duration: '30 phút', isPreview: true },
+          { title: 'Kỹ thuật nâng cao', duration: '45 phút', isPreview: false },
+          { title: 'Ứng dụng thực tế', duration: '40 phút', isPreview: false },
+          { title: 'Cách tiếp cận giải quyết vấn đề', duration: '35 phút', isPreview: false }
         ]
       },
       {
-        title: 'Building Projects',
+        title: 'Xây dựng dự án',
         lessons: [
-          { title: 'Project Planning', duration: '25 min', isPreview: false },
-          { title: 'Implementation Strategies', duration: '50 min', isPreview: false },
-          { title: 'Testing and Debugging', duration: '40 min', isPreview: false },
-          { title: 'Deployment and Maintenance', duration: '35 min', isPreview: false }
+          { title: 'Lập kế hoạch dự án', duration: '25 phút', isPreview: false },
+          { title: 'Chiến lược triển khai', duration: '50 phút', isPreview: false },
+          { title: 'Kiểm tra và gỡ lỗi', duration: '40 phút', isPreview: false },
+          { title: 'Triển khai và bảo trì', duration: '35 phút', isPreview: false }
         ]
       }
     ],
     reviews: [
       {
         id: 1,
-        name: 'Alex Thompson',
+        name: 'Nguyễn Văn An',
         rating: 5,
-        date: '2 weeks ago',
-        comment: 'This course exceeded my expectations. The content is well-structured and the instructor explains complex concepts in a way that\'s easy to understand.'
+        date: '2 tuần trước',
+        comment: 'Khóa học này vượt quá mong đợi của tôi. Nội dung được cấu trúc tốt và giảng viên giải thích các khái niệm phức tạp theo cách dễ hiểu.'
       },
       {
         id: 2,
-        name: 'Sophia Rodriguez',
+        name: 'Trần Thị Bình',
         rating: 4,
-        date: '1 month ago',
-        comment: 'Great course with practical examples. I appreciate the hands-on approach and the projects really helped solidify my understanding.'
+        date: '1 tháng trước',
+        comment: 'Khóa học tuyệt vời với các ví dụ thực tế. Tôi đánh giá cao cách tiếp cận thực hành và các dự án thực sự giúp củng cố hiểu biết của tôi.'
       },
       {
         id: 3,
-        name: 'Marcus Johnson',
+        name: 'Lê Minh Chí',
         rating: 5,
-        date: '2 months ago',
-        comment: 'One of the best courses I\'ve taken online. Very comprehensive and the instructor is clearly knowledgeable about the subject matter.'
+        date: '2 tháng trước',
+        comment: 'Một trong những khóa học tốt nhất tôi từng học trực tuyến. Rất toàn diện và giảng viên có kiến thức sâu rộng về chủ đề.'
       }
     ]
   };
@@ -158,11 +158,11 @@ const CourseDetail = () => {
               <div className="flex flex-wrap items-center gap-4 mb-8 text-sm">
                 <div className="flex items-center gap-1">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span>Instructor: <strong>{course.instructorName}</strong></span>
+                  <span>Giảng viên: <strong>{course.instructorName}</strong></span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 text-yellow-500" />
-                  <span><strong>{course.rating}</strong> ({course.enrolled} students)</span>
+                  <span><strong>{course.rating}</strong> ({course.enrolled} học viên)</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4 text-muted-foreground" />
@@ -175,7 +175,7 @@ const CourseDetail = () => {
               </div>
               
               <Button size="lg" className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
-                Enroll Now for ${course.price?.toFixed(2)}
+                Đăng ký ngay với giá ${course.price?.toFixed(2)}
               </Button>
             </div>
             
@@ -190,7 +190,7 @@ const CourseDetail = () => {
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                   <Button size="lg" variant="outline" className="rounded-full text-white border-white hover:bg-white/20">
                     <PlayCircle className="h-6 w-6 mr-2" />
-                    Watch Preview
+                    Xem trước
                   </Button>
                 </div>
               </div>
@@ -204,23 +204,23 @@ const CourseDetail = () => {
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start mb-8 border-b rounded-none bg-transparent pb-px overflow-x-auto">
             <TabsTrigger value="overview" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              Overview
+              Tổng quan
             </TabsTrigger>
             <TabsTrigger value="curriculum" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              Curriculum
+              Chương trình học
             </TabsTrigger>
             <TabsTrigger value="instructor" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              Instructor
+              Giảng viên
             </TabsTrigger>
             <TabsTrigger value="reviews" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              Reviews
+              Đánh giá
             </TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="animate-fade-in">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="md:col-span-2">
-                <h2 className="text-2xl font-medium mb-6">What You'll Learn</h2>
+                <h2 className="text-2xl font-medium mb-6">Những gì bạn sẽ học</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
                   {courseDetails.whatYouWillLearn.map((item, index) => (
                     <div key={index} className="flex items-start gap-3">
@@ -230,16 +230,16 @@ const CourseDetail = () => {
                   ))}
                 </div>
                 
-                <h2 className="text-2xl font-medium mb-6">Course Description</h2>
+                <h2 className="text-2xl font-medium mb-6">Mô tả khóa học</h2>
                 <div className="prose max-w-none mb-8">
                   <p className="mb-4">
-                    This comprehensive course is designed to take you on a journey through the core concepts and practical applications of {course.title}. Whether you're a beginner looking to establish a solid foundation or an experienced professional aiming to refine your skills, this course offers valuable insights and hands-on experience.
+                    Khóa học toàn diện này được thiết kế để đưa bạn vào hành trình khám phá các khái niệm cốt lõi và ứng dụng thực tế của {course.title}. Dù bạn là người mới bắt đầu muốn xây dựng nền tảng vững chắc hay chuyên gia có kinh nghiệm muốn trau dồi kỹ năng, khóa học này cung cấp những hiểu biết giá trị và trải nghiệm thực hành.
                   </p>
                   <p className="mb-4">
-                    Throughout the curriculum, you'll work on real-world projects that will help you apply the concepts you learn. Our step-by-step approach ensures that you not only understand the theoretical aspects but also gain practical experience that you can leverage in your professional journey.
+                    Trong suốt chương trình học, bạn sẽ làm việc trên các dự án thực tế giúp áp dụng các khái niệm đã học. Cách tiếp cận từng bước của chúng tôi đảm bảo rằng bạn không chỉ hiểu các khía cạnh lý thuyết mà còn có được kinh nghiệm thực tế có thể áp dụng trong hành trình chuyên môn của bạn.
                   </p>
                   <p>
-                    By the end of this course, you'll have developed a robust skill set that will enable you to confidently tackle projects and challenges in this field. Join us and take the first step towards mastering {course.title}.
+                    Khi kết thúc khóa học này, bạn sẽ phát triển được một bộ kỹ năng mạnh mẽ giúp bạn tự tin giải quyết các dự án và thách thức trong lĩnh vực này. Hãy tham gia cùng chúng tôi và thực hiện bước đầu tiên hướng tới việc làm chủ {course.title}.
                   </p>
                 </div>
               </div>
@@ -247,31 +247,31 @@ const CourseDetail = () => {
               <div className="md:col-span-1">
                 <Card>
                   <CardContent className="p-6">
-                    <h3 className="text-lg font-medium mb-4">Course Includes</h3>
+                    <h3 className="text-lg font-medium mb-4">Khóa học bao gồm</h3>
                     <div className="space-y-4">
                       <div className="flex items-center gap-3">
                         <PlayCircle className="h-5 w-5 text-muted-foreground" />
-                        <span>{courseDetails.lessons} video lessons</span>
+                        <span>{courseDetails.lessons} bài học video</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Clock className="h-5 w-5 text-muted-foreground" />
-                        <span>{courseDetails.duration} total duration</span>
+                        <span>{courseDetails.duration} tổng thời lượng</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <BookOpen className="h-5 w-5 text-muted-foreground" />
-                        <span>Comprehensive resources</span>
+                        <span>Tài nguyên toàn diện</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <BarChart className="h-5 w-5 text-muted-foreground" />
-                        <span>Progress tracking</span>
+                        <span>Theo dõi tiến độ</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Globe className="h-5 w-5 text-muted-foreground" />
-                        <span>Full lifetime access</span>
+                        <span>Truy cập trọn đời</span>
                       </div>
                       <div className="flex items-center gap-3">
                         <Award className="h-5 w-5 text-muted-foreground" />
-                        <span>Certificate of completion</span>
+                        <span>Chứng chỉ hoàn thành</span>
                       </div>
                     </div>
                   </CardContent>
@@ -281,7 +281,7 @@ const CourseDetail = () => {
           </TabsContent>
           
           <TabsContent value="curriculum" className="animate-fade-in">
-            <h2 className="text-2xl font-medium mb-6">Course Curriculum</h2>
+            <h2 className="text-2xl font-medium mb-6">Chương trình khóa học</h2>
             <div className="space-y-4">
               {courseDetails.curriculum.map((section, index) => (
                 <Accordion type="single" collapsible key={index}>
@@ -290,12 +290,12 @@ const CourseDetail = () => {
                       <div className="flex justify-between items-center w-full text-left pr-4">
                         <span className="font-medium">{section.title}</span>
                         <span className="text-sm text-muted-foreground">
-                          {section.lessons.length} lessons • {
+                          {section.lessons.length} bài học • {
                             section.lessons.reduce((total, lesson) => {
                               const minutes = parseInt(lesson.duration.split(' ')[0]);
                               return total + minutes;
                             }, 0)
-                          } min
+                          } phút
                         </span>
                       </div>
                     </AccordionTrigger>
@@ -307,7 +307,7 @@ const CourseDetail = () => {
                               <PlayCircle className="h-5 w-5 text-muted-foreground" />
                               <span>{lesson.title}</span>
                               {lesson.isPreview && (
-                                <Badge variant="outline" className="ml-2">Preview</Badge>
+                                <Badge variant="outline" className="ml-2">Xem trước</Badge>
                               )}
                             </div>
                             <span className="text-sm text-muted-foreground">{lesson.duration}</span>
@@ -333,11 +333,11 @@ const CourseDetail = () => {
                 </div>
                 <div>
                   <h2 className="text-2xl font-medium mb-2">{course.instructorName}</h2>
-                  <p className="text-primary mb-4">Expert Instructor</p>
+                  <p className="text-primary mb-4">Giảng viên chuyên gia</p>
                   <p className="text-muted-foreground mb-6">
-                    A passionate educator with over 10 years of industry experience, specializing in {course.categories?.[0]}. With a background in both academic and practical applications, {course.instructorName?.split(' ')[0]} brings a unique perspective to teaching that blends theoretical knowledge with real-world insights.
+                    Một nhà giáo dục nhiệt huyết với hơn 10 năm kinh nghiệm trong ngành, chuyên về {course.categories?.[0]}. Với nền tảng trong cả lý thuyết học thuật và ứng dụng thực tế, {course.instructorName?.split(' ')[0]} mang đến một góc nhìn độc đáo trong giảng dạy kết hợp kiến thức lý thuyết với những hiểu biết từ thực tế.
                   </p>
-                  <Button variant="outline">View Profile</Button>
+                  <Button variant="outline">Xem hồ sơ</Button>
                 </div>
               </div>
             </div>
@@ -353,11 +353,11 @@ const CourseDetail = () => {
                       <Star key={i} className={`h-5 w-5 ${i < Math.floor(course.rating || 0) ? 'text-yellow-500' : 'text-muted'}`} fill={i < Math.floor(course.rating || 0) ? 'currentColor' : 'none'} />
                     ))}
                   </div>
-                  <div className="text-sm text-muted-foreground">Course Rating</div>
+                  <div className="text-sm text-muted-foreground">Đánh giá khóa học</div>
                 </div>
                 
                 <div className="flex-grow">
-                  <h3 className="text-xl font-medium mb-4">Student Reviews</h3>
+                  <h3 className="text-xl font-medium mb-4">Đánh giá từ học viên</h3>
                   <div className="space-y-6">
                     {courseDetails.reviews.map((review) => (
                       <div key={review.id} className="border-b pb-6 last:border-0">
@@ -378,7 +378,7 @@ const CourseDetail = () => {
               </div>
               
               <div className="text-center">
-                <Button>Load More Reviews</Button>
+                <Button>Xem thêm đánh giá</Button>
               </div>
             </div>
           </TabsContent>
@@ -388,7 +388,7 @@ const CourseDetail = () => {
       {/* Recommended Courses */}
       <div className="bg-muted/30 py-16">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-medium mb-8">Related Courses</h2>
+          <h2 className="text-2xl font-medium mb-8">Khóa học liên quan</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {allCourses
               .filter(c => c.course_id !== course.course_id)
@@ -409,13 +409,13 @@ const CourseDetail = () => {
       <div className="py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl md:text-3xl font-medium mb-6">
-            Ready to start learning?
+            Sẵn sàng bắt đầu học?
           </h2>
           <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Join thousands of students already taking this course and advance your skills today.
+            Tham gia cùng hàng nghìn học viên đang học khóa học này và nâng cao kỹ năng của bạn ngay hôm nay.
           </p>
           <Button size="lg" className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
-            Enroll Now for ${course.price?.toFixed(2)}
+            Đăng ký ngay với giá ${course.price?.toFixed(2)}
           </Button>
         </div>
       </div>

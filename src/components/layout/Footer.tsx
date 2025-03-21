@@ -7,30 +7,30 @@ const Footer = () => {
 
   const footerSections = [
     {
-      title: 'Platform',
+      title: 'Nền tảng',
       links: [
-        { name: 'Courses', href: '/courses' },
-        { name: 'Quizzes', href: '/quizzes' },
-        { name: 'Resources', href: '/resources' },
-        { name: 'Blog', href: '/blog' },
+        { name: 'Khóa học', href: '/courses' },
+        { name: 'Bài kiểm tra', href: '/quizzes' },
+        { name: 'Tài nguyên', href: '/resources' },
+        { name: 'Bài viết', href: '/blog' },
       ],
     },
     {
-      title: 'Company',
+      title: 'Công ty',
       links: [
-        { name: 'About', href: '/about' },
-        { name: 'Careers', href: '/careers' },
-        { name: 'Press', href: '/press' },
-        { name: 'Contact', href: '/contact' },
+        { name: 'Giới thiệu', href: '/about' },
+        { name: 'Tuyển dụng', href: '/careers' },
+        { name: 'Báo chí', href: '/press' },
+        { name: 'Liên hệ', href: '/contact' },
       ],
     },
     {
-      title: 'Legal',
+      title: 'Pháp lý',
       links: [
-        { name: 'Terms', href: '/terms' },
-        { name: 'Privacy', href: '/privacy' },
-        { name: 'Cookies', href: '/cookies' },
-        { name: 'Licenses', href: '/licenses' },
+        { name: 'Điều khoản', href: '/terms' },
+        { name: 'Quyền riêng tư', href: '/privacy' },
+        { name: 'Cookie', href: '/cookies' },
+        { name: 'Giấy phép', href: '/licenses' },
       ],
     },
   ];
@@ -46,7 +46,7 @@ const Footer = () => {
               </span>
             </Link>
             <p className="text-muted-foreground max-w-sm mb-6">
-              Your comprehensive platform for learning, testing your knowledge, and accessing valuable educational resources.
+              Nền tảng toàn diện giúp bạn học tập, kiểm tra kiến thức và truy cập nguồn tài liệu học tập chất lượng cao.
             </p>
             <div className="flex gap-4">
               <a
@@ -106,26 +106,26 @@ const Footer = () => {
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} QuizCourseHub. All rights reserved.
+            © {currentYear} QuizCourseHub. Bảo lưu mọi quyền.
           </p>
           <div className="flex items-center gap-4">
             <Link
               to="/terms"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Terms
+              Điều khoản
             </Link>
             <Link
               to="/privacy"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Privacy
+              Quyền riêng tư
             </Link>
             <Link
               to="/cookies"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Cookies
+              Cookie
             </Link>
           </div>
         </div>

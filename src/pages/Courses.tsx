@@ -47,8 +47,8 @@ const Courses = () => {
     <Layout>
       <div className="container mx-auto px-4 py-16">
         <SectionHeading
-          title="Explore Our Courses"
-          subtitle="Discover a wide range of courses designed to help you achieve your learning goals"
+          title="Khám phá khóa học của chúng tôi"
+          subtitle="Tìm hiểu nhiều khóa học được thiết kế để giúp bạn đạt được mục tiêu học tập"
           className="mb-12"
         />
 
@@ -59,7 +59,7 @@ const Courses = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
                 type="text"
-                placeholder="Search courses..."
+                placeholder="Tìm kiếm khóa học..."
                 className="pl-10 rounded-full"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -71,7 +71,7 @@ const Courses = () => {
               onClick={() => setFiltersVisible(!filtersVisible)}
             >
               <SlidersHorizontal className="h-4 w-4" />
-              Filters
+              Bộ lọc
               {selectedCategories.length > 0 && (
                 <Badge variant="secondary" className="ml-1">
                   {selectedCategories.length}
@@ -85,14 +85,14 @@ const Courses = () => {
                 onClick={clearFilters}
               >
                 <X className="h-4 w-4" />
-                Clear
+                Xóa
               </Button>
             )}
           </div>
 
           {filtersVisible && (
             <div className="bg-muted/40 p-6 rounded-lg mb-6 animate-scale-in">
-              <h3 className="font-medium mb-4">Categories</h3>
+              <h3 className="font-medium mb-4">Danh mục</h3>
               <div className="flex flex-wrap gap-2">
                 {allCategories.map((category) => (
                   <Badge
@@ -120,11 +120,11 @@ const Courses = () => {
           </div>
         ) : (
           <div className="text-center py-16">
-            <h3 className="text-xl font-medium mb-2">No courses found</h3>
+            <h3 className="text-xl font-medium mb-2">Không tìm thấy khóa học</h3>
             <p className="text-muted-foreground mb-6">
-              Try adjusting your search or filter criteria
+              Hãy điều chỉnh tìm kiếm hoặc bộ lọc của bạn
             </p>
-            <Button onClick={clearFilters}>Clear All Filters</Button>
+            <Button onClick={clearFilters}>Xóa tất cả bộ lọc</Button>
           </div>
         )}
       </div>

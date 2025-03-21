@@ -14,42 +14,42 @@ const Index = () => {
   const features = [
     {
       icon: <BookOpen className="h-10 w-10 text-primary" />,
-      title: "Comprehensive Courses",
-      description: "Access a wide range of courses taught by industry experts and designed for all skill levels."
+      title: "Khóa học toàn diện",
+      description: "Truy cập nhiều khóa học được giảng dạy bởi các chuyên gia trong ngành và được thiết kế cho mọi trình độ."
     },
     {
       icon: <CheckCircle2 className="h-10 w-10 text-primary" />,
-      title: "Interactive Quizzes",
-      description: "Test your knowledge with interactive quizzes and assessments for each course module."
+      title: "Bài kiểm tra tương tác",
+      description: "Kiểm tra kiến thức của bạn với các bài kiểm tra và đánh giá tương tác cho từng mô-đun khóa học."
     },
     {
       icon: <Users className="h-10 w-10 text-primary" />,
-      title: "Community Learning",
-      description: "Join a community of learners to share insights, ask questions, and collaborate."
+      title: "Học cộng đồng",
+      description: "Tham gia cộng đồng học viên để chia sẻ kiến thức, đặt câu hỏi và cùng nhau hợp tác."
     },
     {
       icon: <BarChart className="h-10 w-10 text-primary" />,
-      title: "Progress Tracking",
-      description: "Monitor your learning progress and achievements with detailed analytics and certificates."
+      title: "Theo dõi tiến độ",
+      description: "Theo dõi tiến độ học tập và thành tích của bạn với phân tích chi tiết và chứng chỉ."
     }
   ];
 
   return (
     <Layout>
       <HeroSection
-        title="Elevate Your Skills with Expert-Led Courses"
-        subtitle="Join our platform for interactive learning experiences, comprehensive courses, and knowledge-testing quizzes."
+        title="Nâng cao kỹ năng của bạn với các khóa học từ chuyên gia"
+        subtitle="Tham gia nền tảng của chúng tôi để trải nghiệm học tập tương tác, khóa học toàn diện và các bài kiểm tra kiến thức."
         imageUrl="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1471&q=80"
-        primaryAction={{ label: "Explore Courses", href: "/courses" }}
-        secondaryAction={{ label: "Learn More", href: "/about" }}
+        primaryAction={{ label: "Khám phá khóa học", href: "/courses" }}
+        secondaryAction={{ label: "Tìm hiểu thêm", href: "/about" }}
       />
 
       {/* Featured Courses Section */}
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <SectionHeading
-            title="Featured Courses"
-            subtitle="Explore our most popular and highly-rated courses"
+            title="Khóa học nổi bật"
+            subtitle="Khám phá các khóa học phổ biến và được đánh giá cao nhất của chúng tôi"
           />
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -63,7 +63,7 @@ const Index = () => {
           <div className="mt-12 text-center">
             <Button asChild size="lg" className="rounded-full">
               <Link to="/courses">
-                View All Courses <ArrowRight className="ml-2 h-4 w-4" />
+                Xem tất cả khóa học <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -74,8 +74,8 @@ const Index = () => {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <SectionHeading
-            title="Why Choose QuizCourseHub"
-            subtitle="We provide a complete learning ecosystem designed for your success"
+            title="Tại sao chọn QuizCourseHub"
+            subtitle="Chúng tôi cung cấp một hệ sinh thái học tập hoàn chỉnh được thiết kế cho sự thành công của bạn"
           />
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -98,19 +98,19 @@ const Index = () => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div className="animate-slide-up" style={{animationDelay: '0ms'}}>
               <div className="text-4xl md:text-5xl font-display font-medium mb-2">100+</div>
-              <div className="text-primary-foreground/80">Courses</div>
+              <div className="text-primary-foreground/80">Khóa học</div>
             </div>
             <div className="animate-slide-up" style={{animationDelay: '100ms'}}>
               <div className="text-4xl md:text-5xl font-display font-medium mb-2">50K+</div>
-              <div className="text-primary-foreground/80">Students</div>
+              <div className="text-primary-foreground/80">Học viên</div>
             </div>
             <div className="animate-slide-up" style={{animationDelay: '200ms'}}>
               <div className="text-4xl md:text-5xl font-display font-medium mb-2">200+</div>
-              <div className="text-primary-foreground/80">Quizzes</div>
+              <div className="text-primary-foreground/80">Bài kiểm tra</div>
             </div>
             <div className="animate-slide-up" style={{animationDelay: '300ms'}}>
               <div className="text-4xl md:text-5xl font-display font-medium mb-2">99%</div>
-              <div className="text-primary-foreground/80">Satisfaction</div>
+              <div className="text-primary-foreground/80">Hài lòng</div>
             </div>
           </div>
         </div>
@@ -120,8 +120,8 @@ const Index = () => {
       <section className="py-20">
         <div className="container mx-auto px-4">
           <SectionHeading
-            title="Latest From Our Blog"
-            subtitle="Insights, tips, and updates from our education experts"
+            title="Bài viết mới nhất"
+            subtitle="Thông tin chi tiết, mẹo và cập nhật từ các chuyên gia giáo dục của chúng tôi"
           />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -137,11 +137,11 @@ const Index = () => {
                   </div>
                   <CardContent className="p-6">
                     <div className="text-sm text-muted-foreground mb-2">
-                      {new Date(post.created_at).toLocaleDateString('en-US', {
+                      {new Date(post.created_at).toLocaleDateString('vi-VN', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric'
-                      })} • {post.comments_count} comments
+                      })} • {post.comments_count} bình luận
                     </div>
                     <h3 className="text-xl font-medium mb-3 group-hover:text-primary transition-colors">
                       {post.title}
@@ -150,7 +150,7 @@ const Index = () => {
                       {post.excerpt}
                     </p>
                     <div className="flex items-center">
-                      <span className="font-medium">Read more</span>
+                      <span className="font-medium">Xem thêm</span>
                       <ArrowRight className="ml-2 h-4 w-4 transform transition-transform group-hover:translate-x-1" />
                     </div>
                   </CardContent>
@@ -162,7 +162,7 @@ const Index = () => {
           <div className="mt-12 text-center">
             <Button asChild variant="outline" size="lg" className="rounded-full">
               <Link to="/blog">
-                View All Articles <ArrowRight className="ml-2 h-4 w-4" />
+                Xem tất cả bài viết <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           </div>
@@ -174,13 +174,13 @@ const Index = () => {
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl font-medium mb-6">
-              Ready to start your learning journey?
+              Sẵn sàng bắt đầu hành trình học tập của bạn?
             </h2>
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join thousands of students already learning on our platform. Your next skill is just a click away.
+              Tham gia cùng hàng nghìn học viên đang học tập trên nền tảng của chúng tôi. Kỹ năng tiếp theo của bạn chỉ cách một cú nhấp chuột.
             </p>
             <Button asChild size="lg" className="rounded-full px-8">
-              <Link to="/register">Get Started Today</Link>
+              <Link to="/register">Bắt đầu ngay hôm nay</Link>
             </Button>
           </div>
         </div>
