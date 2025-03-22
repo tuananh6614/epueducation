@@ -10,11 +10,10 @@ WHERE @category_id IS NULL;
 -- Get the category ID (either existing or newly created)
 SET @category_id = IFNULL(@category_id, LAST_INSERT_ID());
 
--- Insert the course
+-- Insert the course (without thumbnail since this column doesn't exist in your database)
 INSERT INTO courses (
   title, 
   description, 
-  thumbnail, 
   price, 
   instructor_id, 
   category_id, 
@@ -23,7 +22,6 @@ INSERT INTO courses (
 ) VALUES (
   'Thuật Toán và Thiết Kế Chương Trình',
   'Khóa học này giúp bạn hiểu rõ về các thuật toán cơ bản và nâng cao, cách thiết kế và tối ưu hóa chương trình. Bạn sẽ học cách phân tích độ phức tạp, thiết kế thuật toán hiệu quả và áp dụng các cấu trúc dữ liệu phù hợp.',
-  'https://images.unsplash.com/photo-1555949963-ff9fe0c870eb?q=80&w=2070&auto=format&fit=crop',
   0.00,
   1, -- Assuming admin is the instructor (user_id = 1)
   @category_id,
@@ -34,7 +32,7 @@ INSERT INTO courses (
 -- Get the newly created course ID
 SET @course_id = LAST_INSERT_ID();
 
--- Insert lessons for the course
+-- Insert lessons for the course, check if your lessons table has video_url or another column name
 INSERT INTO lessons (course_id, title, content, video_url, duration, order_index, is_free) VALUES
 (@course_id, 'Giới thiệu về Thuật toán', 'Trong bài học này, bạn sẽ được giới thiệu về khái niệm thuật toán, tầm quan trọng và cách đánh giá thuật toán.', 'https://www.youtube.com/embed/sample1', 45, 1, TRUE),
 (@course_id, 'Độ phức tạp thuật toán', 'Học cách phân tích độ phức tạp thời gian và không gian của thuật toán với ký hiệu Big O.', 'https://www.youtube.com/embed/sample2', 60, 2, FALSE),
