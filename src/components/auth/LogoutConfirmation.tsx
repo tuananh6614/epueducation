@@ -27,6 +27,9 @@ const LogoutConfirmation = ({ isOpen, onOpenChange }: LogoutConfirmationProps) =
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     
+    // Trigger storage event for cross-component communication
+    window.dispatchEvent(new Event('storage'));
+    
     // Đóng dialog
     onOpenChange(false);
     
@@ -83,3 +86,4 @@ const LogoutConfirmation = ({ isOpen, onOpenChange }: LogoutConfirmationProps) =
 };
 
 export default LogoutConfirmation;
+

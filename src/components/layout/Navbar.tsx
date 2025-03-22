@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ const Navbar = () => {
     { name: 'Giới thiệu', href: '/about' },
   ];
 
+  // Track scroll position
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -40,22 +42,35 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
+  // Check authentication status on initial load and when location changes
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+    const checkAuthStatus = () => {
+      const token = localStorage.getItem('token');
+      const userData = localStorage.getItem('user');
+      
+      if (token && userData) {
+        setIsLoggedIn(true);
+        setUser(JSON.parse(userData));
+      } else {
+        setIsLoggedIn(false);
+        setUser(null);
+      }
+    };
     
-    if (token && userData) {
-      setIsLoggedIn(true);
-      setUser(JSON.parse(userData));
-    } else {
-      setIsLoggedIn(false);
-      setUser(null);
-    }
-  }, []);
+    checkAuthStatus();
+    
+    // Add event listener for storage changes to detect logout from other components
+    window.addEventListener('storage', checkAuthStatus);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuthStatus);
+    };
+  }, [location.pathname]); // Re-check when route changes
 
   const handleLogoutClick = () => {
     setShowLogoutDialog(true);
@@ -214,3 +229,4 @@ const Navbar = () => {
 };
 
 export default Navbar;
+
