@@ -9,7 +9,8 @@ router.get('/', async (req, res) => {
   try {
     const connection = await createConnection();
     
-    // Get courses with instructor information and categories
+    // Get all courses with appropriate joins
+    // Note: Using user_id to join with instructor_id since that's the column in courses table
     const [courses] = await connection.execute(`
       SELECT c.*, u.full_name AS instructorName, cat.name AS category_name,
       (SELECT COUNT(*) FROM course_enrollments WHERE course_id = c.course_id) AS enrolled
