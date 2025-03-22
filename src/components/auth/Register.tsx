@@ -29,7 +29,7 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const { username, email, password, confirmPassword } = formData;
+    const { username, email, password, confirmPassword, fullName } = formData;
     
     if (!username || !email || !password || !confirmPassword) {
       toast({
@@ -61,17 +61,31 @@ const Register = () => {
     setIsLoading(true);
     
     try {
-      // For demo purposes only - in a real app, this would call an API
-      setTimeout(() => {
-        toast({
-          title: "Thành công",
-          description: "Đăng ký thành công! Đang chuyển hướng...",
-        });
-        
-        setIsLoading(false);
-        navigate('/login');
-      }, 1000);
+      const response = await fetch('http://localhost:5000/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username,
+          email,
+          password,
+          fullName
+        })
+      });
       
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Đăng ký thất bại');
+      }
+      
+      toast({
+        title: "Thành công",
+        description: "Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...",
+      });
+      
+      navigate('/login');
     } catch (error) {
       console.error('Registration error:', error);
       toast({
@@ -79,6 +93,7 @@ const Register = () => {
         description: error instanceof Error ? error.message : 'Đăng ký thất bại',
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };

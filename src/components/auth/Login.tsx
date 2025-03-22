@@ -30,23 +30,30 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // For demo purposes only - in a real app, this would call an API
-      setTimeout(() => {
-        localStorage.setItem('user', JSON.stringify({
-          id: 1,
-          email,
-          username: email.split('@')[0],
-        }));
-        
-        toast({
-          title: "Thành công",
-          description: "Đăng nhập thành công",
-        });
-        
-        setIsLoading(false);
-        navigate('/');
-      }, 1000);
+      const response = await fetch('http://localhost:5000/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
       
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Đăng nhập thất bại');
+      }
+      
+      // Lưu token và thông tin người dùng vào localStorage
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      toast({
+        title: "Thành công",
+        description: "Đăng nhập thành công",
+      });
+      
+      navigate('/');
     } catch (error) {
       console.error('Login error:', error);
       toast({
@@ -54,6 +61,7 @@ const Login = () => {
         description: error instanceof Error ? error.message : 'Đăng nhập thất bại',
         variant: "destructive",
       });
+    } finally {
       setIsLoading(false);
     }
   };
