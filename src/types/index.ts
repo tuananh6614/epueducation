@@ -6,8 +6,9 @@ export interface User {
   full_name: string | null;
   profile_picture: string | null;
   balance: number;
+  bio?: string | null;
   created_at: string;
-  updated_at: string | null;
+  updated_at?: string | null;
 }
 
 export interface Course {
@@ -34,27 +35,6 @@ export interface Lesson {
   video_link: string | null;
   order_index: number | null;
   duration?: string;
-}
-
-export interface Quiz {
-  quiz_id: number;
-  course_id: number;
-  title: string;
-  total_questions: number | null;
-}
-
-export interface Question {
-  question_id: number;
-  quiz_id: number;
-  question_text: string;
-  answers?: Answer[];
-}
-
-export interface Answer {
-  answer_id: number;
-  question_id: number;
-  answer_text: string;
-  is_correct: boolean;
 }
 
 export interface BlogPost {
@@ -85,17 +65,21 @@ export interface Resource {
   resource_link: string;
   description: string | null;
   price: number;
-  uploaded_at: string;
+  uploaded_at?: string;
+  created_at?: string;
   title?: string;
   thumbnail?: string;
+  file_url?: string;
+  file_type?: string;
+  download_count?: number;
 }
 
-export interface Enrollment {
-  enrollment_id: number;
+export interface Purchase {
+  purchase_id: number;
   user_id: number;
-  course_id: number;
-  enrolled_at: string;
-  completed_at: string | null;
+  resource_id: number;
+  purchase_date: string;
+  price_paid: number;
 }
 
 export interface Transaction {
@@ -107,10 +91,14 @@ export interface Transaction {
   created_at: string;
 }
 
-export interface Purchase {
-  purchase_id: number;
-  user_id: number;
-  resource_id: number;
-  purchase_date: string;
-  amount: number;
+export interface ProfileFormData {
+  username: string;
+  email: string;
+  full_name: string;
+}
+
+export interface PasswordFormData {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
 }

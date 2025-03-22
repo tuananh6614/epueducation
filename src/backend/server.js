@@ -1,10 +1,12 @@
-
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,6 +15,42 @@ const JWT_SECRET = 'TYnh&j1VK8$p2^C@4XZrQ7*sW!9mDgEb'; // JWT Secret mạnh
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+// Configure multer for file uploads
+const uploadDir = path.join(__dirname, '../../public/uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'profile-' + uniqueSuffix + ext);
+  }
+});
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Chỉ chấp nhận file ảnh (jpeg, jpg, png, gif)'));
+    }
+  }
+});
+
+// Serve static files
+app.use('/uploads', express.static(path.join(__dirname, '../../public/uploads')));
 
 // Database connection
 const createConnection = async () => {
@@ -527,13 +565,13 @@ app.get('/api/likes/check', authenticateToken, async (req, res) => {
   }
 });
 
-// Protected user routes
+// User profile routes
 app.get('/api/user', authenticateToken, async (req, res) => {
   try {
     const connection = await createConnection();
     
     const [users] = await connection.execute(
-      'SELECT user_id, username, email, full_name, profile_picture, balance, created_at FROM users WHERE user_id = ?',
+      'SELECT user_id, username, email, full_name, profile_picture, balance, bio, created_at FROM users WHERE user_id = ?',
       [req.user.id]
     );
     
@@ -547,6 +585,11 @@ app.get('/api/user', authenticateToken, async (req, res) => {
     
     await connection.end();
     
+    // Add full URL to profile picture
+    if (users[0].profile_picture) {
+      users[0].profile_picture = `http://localhost:${PORT}/uploads/${users[0].profile_picture}`;
+    }
+    
     res.json({
       success: true,
       data: users[0]
@@ -556,6 +599,258 @@ app.get('/api/user', authenticateToken, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+app.put('/api/user/update', authenticateToken, upload.single('profile_picture'), async (req, res) => {
+  try {
+    const { username, email, full_name } = req.body;
+    const profilePicture = req.file ? req.file.filename : null;
+    
+    const connection = await createConnection();
+    
+    // Check if username or email is already taken by another user
+    if (username || email) {
+      const [existingUsers] = await connection.execute(
+        'SELECT user_id FROM users WHERE (username = ? OR email = ?) AND user_id != ?',
+        [username, email, req.user.id]
+      );
+      
+      if (existingUsers.length > 0) {
+        await connection.end();
+        return res.status(400).json({
+          success: false,
+          message: 'Tên người dùng hoặc email đã tồn tại'
+        });
+      }
+    }
+    
+    // Get current user info
+    const [currentUsers] = await connection.execute(
+      'SELECT profile_picture FROM users WHERE user_id = ?',
+      [req.user.id]
+    );
+    
+    if (currentUsers.length === 0) {
+      await connection.end();
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng'
+      });
+    }
+    
+    // Build update query
+    let updateQuery = 'UPDATE users SET ';
+    const updateValues = [];
+    
+    if (username) {
+      updateQuery += 'username = ?, ';
+      updateValues.push(username);
+    }
+    
+    if (email) {
+      updateQuery += 'email = ?, ';
+      updateValues.push(email);
+    }
+    
+    if (full_name !== undefined) {
+      updateQuery += 'full_name = ?, ';
+      updateValues.push(full_name);
+    }
+    
+    if (profilePicture) {
+      updateQuery += 'profile_picture = ?, ';
+      updateValues.push(profilePicture);
+      
+      // Delete old profile picture if exists
+      const oldPicture = currentUsers[0].profile_picture;
+      if (oldPicture) {
+        const oldPicturePath = path.join(uploadDir, oldPicture);
+        if (fs.existsSync(oldPicturePath)) {
+          fs.unlinkSync(oldPicturePath);
+        }
+      }
+    }
+    
+    // Remove trailing comma and add WHERE clause
+    updateQuery = updateQuery.slice(0, -2) + ' WHERE user_id = ?';
+    updateValues.push(req.user.id);
+    
+    // Execute update
+    await connection.execute(updateQuery, updateValues);
+    
+    // Get updated user data
+    const [updatedUsers] = await connection.execute(
+      'SELECT user_id, username, email, full_name, profile_picture, balance, bio, created_at FROM users WHERE user_id = ?',
+      [req.user.id]
+    );
+    
+    await connection.end();
+    
+    // Add full URL to profile picture
+    if (updatedUsers[0].profile_picture) {
+      updatedUsers[0].profile_picture = `http://localhost:${PORT}/uploads/${updatedUsers[0].profile_picture}`;
+    }
+    
+    res.json({
+      success: true,
+      message: 'Cập nhật thông tin thành công',
+      data: updatedUsers[0]
+    });
+  } catch (error) {
+    console.error('Update user error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ, vui lòng thử lại sau'
+    });
+  }
+});
+
+app.put('/api/user/change-password', authenticateToken, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng cung cấp đầy đủ thông tin'
+      });
+    }
+    
+    const connection = await createConnection();
+    
+    // Get current user with password
+    const [users] = await connection.execute(
+      'SELECT password FROM users WHERE user_id = ?',
+      [req.user.id]
+    );
+    
+    if (users.length === 0) {
+      await connection.end();
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng'
+      });
+    }
+    
+    // Verify current password
+    const isMatch = await bcrypt.compare(currentPassword, users[0].password);
+    
+    if (!isMatch) {
+      await connection.end();
+      return res.status(400).json({
+        success: false,
+        message: 'Mật khẩu hiện tại không chính xác'
+      });
+    }
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update password
+    await connection.execute(
+      'UPDATE users SET password = ? WHERE user_id = ?',
+      [hashedPassword, req.user.id]
+    );
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      message: 'Đổi mật khẩu thành công'
+    });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ, vui lòng thử lại sau'
+    });
+  }
+});
+
+// Resource purchase routes
+app.get('/api/resources/purchased', authenticateToken, async (req, res) => {
+  try {
+    const connection = await createConnection();
+    
+    // Get user purchases
+    const [purchases] = await connection.execute(`
+      SELECT * FROM resource_purchases 
+      WHERE user_id = ?
+      ORDER BY purchase_date DESC
+    `, [req.user.id]);
+    
+    // Get resources details
+    let resources = [];
+    if (purchases.length > 0) {
+      const resourceIds = purchases.map(purchase => purchase.resource_id).join(',');
+      
+      const [resourcesResult] = await connection.execute(`
+        SELECT * FROM resources 
+        WHERE resource_id IN (${resourceIds})
+      `);
+      
+      resources = resourcesResult;
+    }
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      data: {
+        purchases,
+        resources
+      }
+    });
+  } catch (error) {
+    console.error('Get purchased resources error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ, vui lòng thử lại sau'
+    });
+  }
+});
+
+app.post('/api/resources/:id/download', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const connection = await createConnection();
+    
+    // Verify user has purchased this resource
+    const [purchases] = await connection.execute(`
+      SELECT * FROM resource_purchases 
+      WHERE user_id = ? AND resource_id = ?
+    `, [req.user.id, id]);
+    
+    if (purchases.length === 0) {
+      await connection.end();
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn chưa mua tài liệu này'
+      });
+    }
+    
+    // Update download count
+    await connection.execute(`
+      UPDATE resources 
+      SET download_count = download_count + 1
+      WHERE resource_id = ?
+    `, [id]);
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      message: 'Tải tài liệu thành công'
+    });
+  } catch (error) {
+    console.error('Download resource error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ, vui lòng thử lại sau'
     });
   }
 });

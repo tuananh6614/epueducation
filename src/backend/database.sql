@@ -23,9 +23,7 @@ CREATE TABLE IF NOT EXISTS categories (
   category_id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   description TEXT,
-  parent_id INT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (parent_id) REFERENCES categories(category_id) ON DELETE SET NULL
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tạo bảng Courses
@@ -35,7 +33,6 @@ CREATE TABLE IF NOT EXISTS courses (
   description TEXT,
   thumbnail VARCHAR(255),
   price DECIMAL(10, 2) DEFAULT 0.00,
-  discount_price DECIMAL(10, 2),
   instructor_id INT NOT NULL,
   category_id INT,
   level ENUM('beginner', 'intermediate', 'advanced') DEFAULT 'beginner',
@@ -51,7 +48,6 @@ CREATE TABLE IF NOT EXISTS lessons (
   lesson_id INT AUTO_INCREMENT PRIMARY KEY,
   course_id INT NOT NULL,
   title VARCHAR(255) NOT NULL,
-  description TEXT,
   content TEXT,
   video_url VARCHAR(255),
   duration INT,
@@ -60,149 +56,6 @@ CREATE TABLE IF NOT EXISTS lessons (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
-);
-
--- Tạo bảng Quizzes
-CREATE TABLE IF NOT EXISTS quizzes (
-  quiz_id INT AUTO_INCREMENT PRIMARY KEY,
-  course_id INT NOT NULL,
-  lesson_id INT,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-  time_limit INT,
-  passing_score INT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE,
-  FOREIGN KEY (lesson_id) REFERENCES lessons(lesson_id) ON DELETE SET NULL
-);
-
--- Tạo bảng Questions
-CREATE TABLE IF NOT EXISTS questions (
-  question_id INT AUTO_INCREMENT PRIMARY KEY,
-  quiz_id INT NOT NULL,
-  content TEXT NOT NULL,
-  question_type ENUM('multiple_choice', 'true_false', 'fill_blank') DEFAULT 'multiple_choice',
-  points INT DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (quiz_id) REFERENCES quizzes(quiz_id) ON DELETE CASCADE
-);
-
--- Tạo bảng Answers
-CREATE TABLE IF NOT EXISTS answers (
-  answer_id INT AUTO_INCREMENT PRIMARY KEY,
-  question_id INT NOT NULL,
-  content TEXT NOT NULL,
-  is_correct BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (question_id) REFERENCES questions(question_id) ON DELETE CASCADE
-);
-
--- Tạo bảng CourseEnrollments
-CREATE TABLE IF NOT EXISTS course_enrollments (
-  enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  course_id INT NOT NULL,
-  enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  completed BOOLEAN DEFAULT FALSE,
-  completion_date TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
-);
-
--- Tạo bảng LessonProgress
-CREATE TABLE IF NOT EXISTS lesson_progress (
-  progress_id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  lesson_id INT NOT NULL,
-  completed BOOLEAN DEFAULT FALSE,
-  last_position INT DEFAULT 0,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (lesson_id) REFERENCES lessons(lesson_id) ON DELETE CASCADE
-);
-
--- Tạo bảng QuizAttempts
-CREATE TABLE IF NOT EXISTS quiz_attempts (
-  attempt_id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  quiz_id INT NOT NULL,
-  score INT,
-  passed BOOLEAN,
-  started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  completed_at TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (quiz_id) REFERENCES quizzes(quiz_id) ON DELETE CASCADE
-);
-
--- Tạo bảng UserAnswers
-CREATE TABLE IF NOT EXISTS user_answers (
-  user_answer_id INT AUTO_INCREMENT PRIMARY KEY,
-  attempt_id INT NOT NULL,
-  question_id INT NOT NULL,
-  answer_id INT,
-  user_text_answer TEXT,
-  is_correct BOOLEAN,
-  FOREIGN KEY (attempt_id) REFERENCES quiz_attempts(attempt_id) ON DELETE CASCADE,
-  FOREIGN KEY (question_id) REFERENCES questions(question_id) ON DELETE CASCADE,
-  FOREIGN KEY (answer_id) REFERENCES answers(answer_id) ON DELETE SET NULL
-);
-
--- Tạo bảng Reviews
-CREATE TABLE IF NOT EXISTS reviews (
-  review_id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  course_id INT NOT NULL,
-  rating INT NOT NULL,
-  content TEXT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
-);
-
--- Tạo bảng BlogPosts cập nhật
-CREATE TABLE IF NOT EXISTS blog_posts (
-  post_id INT AUTO_INCREMENT PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  content TEXT NOT NULL,
-  thumbnail VARCHAR(255),
-  author_id INT NOT NULL,
-  is_published BOOLEAN DEFAULT TRUE,
-  publish_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (author_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
-
--- Tạo bảng Comments
-CREATE TABLE IF NOT EXISTS comments (
-  comment_id INT AUTO_INCREMENT PRIMARY KEY,
-  content TEXT NOT NULL,
-  user_id INT NOT NULL,
-  post_id INT,
-  lesson_id INT,
-  parent_id INT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (post_id) REFERENCES blog_posts(post_id) ON DELETE CASCADE,
-  FOREIGN KEY (lesson_id) REFERENCES lessons(lesson_id) ON DELETE CASCADE,
-  FOREIGN KEY (parent_id) REFERENCES comments(comment_id) ON DELETE CASCADE
-);
-
--- Tạo bảng Likes mới
-CREATE TABLE IF NOT EXISTS likes (
-  like_id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  post_id INT,
-  comment_id INT,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (post_id) REFERENCES blog_posts(post_id) ON DELETE CASCADE,
-  FOREIGN KEY (comment_id) REFERENCES comments(comment_id) ON DELETE CASCADE,
-  CONSTRAINT unique_post_like UNIQUE (user_id, post_id),
-  CONSTRAINT unique_comment_like UNIQUE (user_id, comment_id)
 );
 
 -- Tạo bảng Resources
@@ -220,7 +73,7 @@ CREATE TABLE IF NOT EXISTS resources (
   FOREIGN KEY (author_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Tạo bảng ResourcePurchases mới
+-- Tạo bảng ResourcePurchases
 CREATE TABLE IF NOT EXISTS resource_purchases (
   purchase_id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
@@ -244,41 +97,58 @@ CREATE TABLE IF NOT EXISTS transactions (
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Tạo bảng Notifications mới
-CREATE TABLE IF NOT EXISTS notifications (
-  notification_id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
+-- Tạo bảng BlogPosts
+CREATE TABLE IF NOT EXISTS blog_posts (
+  post_id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
   content TEXT NOT NULL,
-  notification_type ENUM('like', 'comment', 'enrollment', 'message', 'system') NOT NULL,
-  related_id INT COMMENT 'ID of the related content (post, comment, course, etc.)',
-  is_read BOOLEAN DEFAULT FALSE,
+  thumbnail VARCHAR(255),
+  author_id INT NOT NULL,
+  is_published BOOLEAN DEFAULT TRUE,
+  publish_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (author_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Tạo bảng Friendships mới (cho chức năng bạn bè giống Facebook)
-CREATE TABLE IF NOT EXISTS friendships (
-  friendship_id INT AUTO_INCREMENT PRIMARY KEY,
+-- Tạo bảng Comments
+CREATE TABLE IF NOT EXISTS comments (
+  comment_id INT AUTO_INCREMENT PRIMARY KEY,
+  content TEXT NOT NULL,
   user_id INT NOT NULL,
-  friend_id INT NOT NULL,
-  status ENUM('pending', 'accepted', 'rejected', 'blocked') DEFAULT 'pending',
+  post_id INT,
+  parent_id INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (friend_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  CONSTRAINT unique_friendship UNIQUE (user_id, friend_id)
+  FOREIGN KEY (post_id) REFERENCES blog_posts(post_id) ON DELETE CASCADE,
+  FOREIGN KEY (parent_id) REFERENCES comments(comment_id) ON DELETE CASCADE
 );
 
--- Tạo bảng Messages mới (cho chức năng nhắn tin)
-CREATE TABLE IF NOT EXISTS messages (
-  message_id INT AUTO_INCREMENT PRIMARY KEY,
-  sender_id INT NOT NULL,
-  receiver_id INT NOT NULL,
-  content TEXT NOT NULL,
-  is_read BOOLEAN DEFAULT FALSE,
+-- Tạo bảng Likes
+CREATE TABLE IF NOT EXISTS likes (
+  like_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  post_id INT,
+  comment_id INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (sender_id) REFERENCES users(user_id) ON DELETE CASCADE,
-  FOREIGN KEY (receiver_id) REFERENCES users(user_id) ON DELETE CASCADE
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (post_id) REFERENCES blog_posts(post_id) ON DELETE CASCADE,
+  FOREIGN KEY (comment_id) REFERENCES comments(comment_id) ON DELETE CASCADE,
+  CONSTRAINT unique_post_like UNIQUE (user_id, post_id),
+  CONSTRAINT unique_comment_like UNIQUE (user_id, comment_id)
+);
+
+-- Tạo bảng CourseEnrollments
+CREATE TABLE IF NOT EXISTS course_enrollments (
+  enrollment_id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  course_id INT NOT NULL,
+  enrolled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  completed BOOLEAN DEFAULT FALSE,
+  completion_date TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
 );
 
 -- Thêm dữ liệu mẫu cho Categories
@@ -288,6 +158,6 @@ INSERT INTO categories (name, description) VALUES
 ('Kinh doanh', 'Các khóa học về kinh doanh và quản lý');
 
 -- Thêm dữ liệu mẫu cho Admin user
-INSERT INTO users (username, email, password, full_name, role) VALUES
-('admin', 'admin@example.com', '$2a$10$JJrL01rGRrKsUo0aKhkK5O3zXdL5LI4rq/0n4ZX/NJpA3V.IQJTl.', 'Quản trị viên', 'admin');
+INSERT INTO users (username, email, password, full_name, role, balance) VALUES
+('admin', 'admin@example.com', '$2a$10$JJrL01rGRrKsUo0aKhkK5O3zXdL5LI4rq/0n4ZX/NJpA3V.IQJTl.', 'Quản trị viên', 'admin', 1000000);
 -- Mật khẩu: admin123
