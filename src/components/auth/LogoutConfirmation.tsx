@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { LogOut, Wave } from 'lucide-react';
+import { LogOut, Waves } from 'lucide-react';
 
 interface LogoutConfirmationProps {
   isOpen: boolean;
@@ -54,7 +54,7 @@ const LogoutConfirmation = ({ isOpen, onOpenChange }: LogoutConfirmationProps) =
         </DialogHeader>
         
         <div className="flex flex-col items-center justify-center py-4">
-          <Wave className="h-20 w-20 text-primary animate-[wave_1s_ease-in-out_infinite]" />
+          <Waves className="h-20 w-20 text-primary animate-[wave_1s_ease-in-out_infinite]" />
           <p className="text-center mt-4 text-muted-foreground">
             Cảm ơn bạn đã sử dụng QuizCourseHub!<br />
             Hẹn gặp lại bạn sớm nhé.
