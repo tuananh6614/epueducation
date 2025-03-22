@@ -14,8 +14,9 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     const connection = await createConnection();
     
+    // Update the query to remove the 'bio' field if it doesn't exist in your table
     const [users] = await connection.execute(
-      'SELECT user_id, username, email, full_name, profile_picture, balance, bio, created_at FROM users WHERE user_id = ?',
+      'SELECT user_id, username, email, full_name, profile_picture, balance, created_at FROM users WHERE user_id = ?',
       [req.user.id]
     );
     
@@ -125,9 +126,9 @@ router.put('/update', authenticateToken, upload.single('profile_picture'), async
     // Execute update
     await connection.execute(updateQuery, updateValues);
     
-    // Get updated user data
+    // Get updated user data (remove 'bio' field from the query)
     const [updatedUsers] = await connection.execute(
-      'SELECT user_id, username, email, full_name, profile_picture, balance, bio, created_at FROM users WHERE user_id = ?',
+      'SELECT user_id, username, email, full_name, profile_picture, balance, created_at FROM users WHERE user_id = ?',
       [req.user.id]
     );
     

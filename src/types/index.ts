@@ -1,4 +1,3 @@
-
 export interface User {
   user_id: number;
   username: string;
@@ -6,7 +5,6 @@ export interface User {
   full_name: string | null;
   profile_picture: string | null;
   balance: number;
-  bio?: string | null;
   created_at: string;
   updated_at?: string | null;
 }
