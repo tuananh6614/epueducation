@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import { Course } from '@/types';
+import { useToast } from '@/hooks/use-toast';
+import AddSampleCourse from '@/components/admin/AddSampleCourse';
 
 // Hàm để fetch dữ liệu khóa học từ API
 const fetchCourses = async (): Promise<Course[]> => {
@@ -23,13 +25,18 @@ const fetchCourses = async (): Promise<Course[]> => {
 };
 
 const Courses = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [allCategories, setAllCategories] = useState<string[]>([]);
+  const [isAdmin] = useState(() => {
+    const user = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') || '{}') : null;
+    return user && user.username === 'admin';
+  });
 
   // Fetch courses using React Query
-  const { data: courses = [], isLoading, isError, error } = useQuery({
+  const { data: courses = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['courses'],
     queryFn: fetchCourses,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -69,14 +76,30 @@ const Courses = () => {
     setSelectedCategories([]);
   };
 
+  const handleRefreshCourses = () => {
+    refetch();
+    toast({
+      title: "Đang làm mới danh sách khóa học",
+      description: "Đang tải dữ liệu mới nhất từ máy chủ",
+    });
+  };
+
   return (
     <Layout>
       <div className="container mx-auto px-4 py-16">
-        <SectionHeading
-          title="Khám phá khóa học của chúng tôi"
-          subtitle="Tìm hiểu nhiều khóa học được thiết kế để giúp bạn đạt được mục tiêu học tập"
-          className="mb-12"
-        />
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-12 gap-4">
+          <SectionHeading
+            title="Khám phá khóa học của chúng tôi"
+            subtitle="Tìm hiểu nhiều khóa học được thiết kế để giúp bạn đạt được mục tiêu học tập"
+            className="mb-0"
+          />
+          <div className="flex items-center gap-2">
+            {isAdmin && <AddSampleCourse />}
+            <Button onClick={handleRefreshCourses} variant="outline" size="sm">
+              Làm mới danh sách
+            </Button>
+          </div>
+        </div>
 
         {/* Search and Filter Section */}
         <div className="mb-12">
