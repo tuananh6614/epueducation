@@ -1,7 +1,31 @@
+
 const express = require('express');
 const router = express.Router();
+const { createConnection } = require('../db');
+const { authenticateToken } = require('../middleware/auth');
 
-// Không còn endpoint seed vì chúng ta đã thêm dữ liệu trực tiếp vào MySQL
+// Admin check middleware
+const adminCheck = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    
+    // Only user with ID 1 (admin) can access
+    if (userId !== 1) {
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền thực hiện hành động này'
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Admin check error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ, vui lòng thử lại sau'
+    });
+  }
+};
 
 // Add a route to add the Algorithm course
 router.post('/algorithm-course', authenticateToken, adminCheck, async (req, res) => {

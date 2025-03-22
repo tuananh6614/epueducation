@@ -8,7 +8,7 @@ SELECT 'Lập trình', 'Các khóa học về lập trình và phát triển ph�
 WHERE @category_id IS NULL;
 
 -- Get the category ID (either existing or newly created)
-SET @category_id = (SELECT category_id FROM categories WHERE name = 'Lập trình' LIMIT 1);
+SET @category_id = IFNULL(@category_id, LAST_INSERT_ID());
 
 -- Insert the course
 INSERT INTO courses (
@@ -65,6 +65,21 @@ INSERT INTO questions (quiz_id, question_text, question_type) VALUES
 (@quiz_final, 'So sánh và đánh giá hiệu suất của các thuật toán sắp xếp đã học', 'essay'),
 (@quiz_final, 'Thuật toán nào thích hợp nhất cho việc tìm đường đi ngắn nhất trong đồ thị có trọng số?', 'multiple_choice'),
 (@quiz_final, 'Phân tích độ phức tạp của một thuật toán đệ quy', 'essay');
+
+-- Thêm câu trả lời cho câu hỏi trắc nghiệm
+INSERT INTO answers (question_id, answer_text, is_correct) VALUES
+(1, 'O(n log n)', 1),
+(1, 'O(n²)', 0),
+(1, 'O(n)', 0),
+(1, 'O(log n)', 0),
+(2, 'Merge Sort', 0),
+(2, 'Heap Sort', 0),
+(2, 'Bubble Sort', 1),
+(2, 'Binary Search', 0),
+(5, 'Thuật toán Dijkstra', 1),
+(5, 'Thuật toán DFS', 0),
+(5, 'Thuật toán BFS', 0),
+(5, 'Thuật toán Prim', 0);
 
 -- Thông báo hoàn thành
 SELECT 'Đã thêm khóa học Thuật Toán và Thiết Kế Chương Trình thành công' AS message;
