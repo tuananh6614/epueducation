@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/layout/Layout';
@@ -11,8 +10,8 @@ import { Search, SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import { Course } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import AddSampleCourse from '@/components/admin/AddSampleCourse';
+import AddCalculusCourse from '@/components/admin/AddCalculusCourse';
 
-// Hàm để fetch dữ liệu khóa học từ API
 const fetchCourses = async (): Promise<Course[]> => {
   const response = await fetch('http://localhost:5000/api/courses');
   const data = await response.json();
@@ -35,14 +34,12 @@ const Courses = () => {
     return user && user.username === 'admin';
   });
 
-  // Fetch courses using React Query
   const { data: courses = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['courses'],
     queryFn: fetchCourses,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Extract all unique categories
   useEffect(() => {
     if (courses.length > 0) {
       const categories = Array.from(
@@ -52,7 +49,6 @@ const Courses = () => {
     }
   }, [courses]);
 
-  // Filter courses based on search term and selected categories
   const filteredCourses = courses.filter((course) => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          (course.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
@@ -93,15 +89,19 @@ const Courses = () => {
             subtitle="Tìm hiểu nhiều khóa học được thiết kế để giúp bạn đạt được mục tiêu học tập"
             className="mb-0"
           />
-          <div className="flex items-center gap-2">
-            {isAdmin && <AddSampleCourse />}
+          <div className="flex items-center gap-2 flex-wrap">
+            {isAdmin && (
+              <>
+                <AddSampleCourse />
+                <AddCalculusCourse />
+              </>
+            )}
             <Button onClick={handleRefreshCourses} variant="outline" size="sm">
               Làm mới danh sách
             </Button>
           </div>
         </div>
 
-        {/* Search and Filter Section */}
         <div className="mb-12">
           <div className="flex flex-col md:flex-row gap-4 mb-6">
             <div className="relative flex-grow">
@@ -158,7 +158,6 @@ const Courses = () => {
           )}
         </div>
 
-        {/* Loading and Error States */}
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
@@ -178,7 +177,6 @@ const Courses = () => {
           </div>
         )}
 
-        {/* Courses Grid */}
         {!isLoading && !isError && (
           <>
             {filteredCourses.length > 0 ? (
