@@ -85,7 +85,7 @@ router.get('/:id', async (req, res) => {
       lessons,
       quizzes,
       enrolled: courses[0].enrolled || 0,
-      duration: '36 giờ', // Placeholder for now
+      duration: lessons.reduce((total, lesson) => total + (lesson.duration || 0), 0) + ' phút', // Calculate duration from lessons
       isFeatured: Math.random() > 0.7 // Random featured status for demo
     };
     
