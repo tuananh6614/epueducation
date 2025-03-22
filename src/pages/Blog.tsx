@@ -168,7 +168,7 @@ const Blog = () => {
       <div className="container mx-auto px-4 py-12">
         <SectionHeading
           title="Blog"
-          description="Chia sẻ kiến thức và trải nghiệm học tập"
+          subtitle="Chia sẻ kiến thức và trải nghiệm học tập"
         />
         
         {/* Quick Post Section */}

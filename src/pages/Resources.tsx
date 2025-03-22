@@ -38,7 +38,7 @@ const Resources = () => {
       <div className="container mx-auto px-4 py-12">
         <SectionHeading
           title="Tài liệu học tập"
-          description="Các tài liệu chất lượng cao để hỗ trợ việc học tập của bạn"
+          subtitle="Các tài liệu chất lượng cao để hỗ trợ việc học tập của bạn"
         />
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
