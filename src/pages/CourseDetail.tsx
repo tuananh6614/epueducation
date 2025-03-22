@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -8,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { allCourses, featuredLessons } from '@/data/mockData';
-import { BookOpen, Clock, Award, PlayCircle, BarChart, CheckCircle, User, Star, Globe } from 'lucide-react';
+import { BookOpen, Clock, Award, PlayCircle, BarChart, CheckCircle, User, Globe } from 'lucide-react';
 import { Course } from '@/types';
 import NotFound from './NotFound';
 
@@ -40,11 +39,10 @@ const CourseCard = ({ course }: { course: Course }) => {
           {course.description}
         </p>
         <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Star className="h-4 w-4 text-yellow-500 mr-1" />
-            <span className="text-sm">{course.rating}</span>
+          <div className="text-sm">
+            <Badge variant="outline" className="bg-green-500/20 hover:bg-green-500/30 text-green-700">Free</Badge>
           </div>
-          <div className="font-medium">${course.price?.toFixed(2)}</div>
+          <div className="font-medium">{course.enrolled} students</div>
         </div>
       </CardContent>
     </Card>
@@ -119,7 +117,7 @@ const CourseDetail = () => {
         name: 'Trần Thị Bình',
         rating: 4,
         date: '1 tháng trước',
-        comment: 'Khóa học tuyệt vời với các ví dụ thực tế. Tôi đánh giá cao cách tiếp cận thực hành và các dự án thực sự giúp củng cố hiểu biết của tôi.'
+        comment: 'Khóa học tuyệt vời với các ví dụ thực tế. Tôi đánh giá cao cách tiếp cận thực hành và các dự án thực tế giúp củng cố hiểu biết của tôi.'
       },
       {
         id: 3,
@@ -161,8 +159,7 @@ const CourseDetail = () => {
                   <span>Giảng viên: <strong>{course.instructorName}</strong></span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Star className="h-4 w-4 text-yellow-500" />
-                  <span><strong>{course.rating}</strong> ({course.enrolled} học viên)</span>
+                  <span><strong>{course.enrolled}</strong> học viên</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4 text-muted-foreground" />
@@ -175,7 +172,7 @@ const CourseDetail = () => {
               </div>
               
               <Button size="lg" className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
-                Đăng ký ngay với giá ${course.price?.toFixed(2)}
+                Đăng ký học miễn phí
               </Button>
             </div>
             
@@ -211,9 +208,6 @@ const CourseDetail = () => {
             </TabsTrigger>
             <TabsTrigger value="instructor" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
               Giảng viên
-            </TabsTrigger>
-            <TabsTrigger value="reviews" className="rounded-none data-[state=active]:border-b-2 data-[state=active]:border-primary">
-              Đánh giá
             </TabsTrigger>
           </TabsList>
           
@@ -342,46 +336,6 @@ const CourseDetail = () => {
               </div>
             </div>
           </TabsContent>
-          
-          <TabsContent value="reviews" className="animate-fade-in">
-            <div className="max-w-3xl">
-              <div className="flex flex-col md:flex-row gap-8 items-start mb-12">
-                <div className="text-center md:text-left">
-                  <div className="text-5xl font-medium mb-2">{course.rating}</div>
-                  <div className="flex items-center mb-1 justify-center md:justify-start">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={`h-5 w-5 ${i < Math.floor(course.rating || 0) ? 'text-yellow-500' : 'text-muted'}`} fill={i < Math.floor(course.rating || 0) ? 'currentColor' : 'none'} />
-                    ))}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Đánh giá khóa học</div>
-                </div>
-                
-                <div className="flex-grow">
-                  <h3 className="text-xl font-medium mb-4">Đánh giá từ học viên</h3>
-                  <div className="space-y-6">
-                    {courseDetails.reviews.map((review) => (
-                      <div key={review.id} className="border-b pb-6 last:border-0">
-                        <div className="flex justify-between items-center mb-2">
-                          <div className="font-medium">{review.name}</div>
-                          <div className="text-sm text-muted-foreground">{review.date}</div>
-                        </div>
-                        <div className="flex items-center mb-3">
-                          {[...Array(5)].map((_, i) => (
-                            <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'text-yellow-500' : 'text-muted'}`} fill={i < review.rating ? 'currentColor' : 'none'} />
-                          ))}
-                        </div>
-                        <p className="text-muted-foreground">{review.comment}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="text-center">
-                <Button>Xem thêm đánh giá</Button>
-              </div>
-            </div>
-          </TabsContent>
         </Tabs>
       </div>
       
@@ -415,7 +369,7 @@ const CourseDetail = () => {
             Tham gia cùng hàng nghìn học viên đang học khóa học này và nâng cao kỹ năng của bạn ngay hôm nay.
           </p>
           <Button size="lg" className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
-            Đăng ký ngay với giá ${course.price?.toFixed(2)}
+            Đăng ký học miễn phí
           </Button>
         </div>
       </div>

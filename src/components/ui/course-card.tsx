@@ -34,11 +34,9 @@ const CourseCard = ({ course }: CourseCardProps) => {
               Featured
             </Badge>
           )}
-          {course.price !== undefined && (
-            <Badge className="absolute bottom-3 right-3 bg-black/80 hover:bg-black">
-              ${course.price.toFixed(2)}
-            </Badge>
-          )}
+          <Badge className="absolute bottom-3 right-3 bg-green-500/90 hover:bg-green-500">
+            Free
+          </Badge>
         </div>
         <CardContent className="p-5">
           <div className="flex items-center gap-2 mb-3">
@@ -55,10 +53,6 @@ const CourseCard = ({ course }: CourseCardProps) => {
             {course.description}
           </p>
           <div className="flex items-center justify-between text-sm">
-            <div className="flex items-center gap-1">
-              <span className="text-yellow-500">★</span>
-              <span>{course.rating || 4.5}</span>
-            </div>
             <div className="text-muted-foreground">{course.enrolled || 0} students</div>
           </div>
         </CardContent>

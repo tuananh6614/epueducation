@@ -1,4 +1,3 @@
-
 import { Course, Lesson, BlogPost, Resource } from '../types';
 
 export const featuredCourses: Course[] = [
@@ -11,8 +10,7 @@ export const featuredCourses: Course[] = [
     thumbnail: "https://images.unsplash.com/photo-1517292987719-0369a794ec0f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80",
     instructorName: "Sarah Johnson",
     enrolled: 1254,
-    rating: 4.8,
-    price: 79.99,
+    price: 0,
     isFeatured: true,
     categories: ["Web Development", "JavaScript", "React"],
     duration: "42 hours"
@@ -26,8 +24,7 @@ export const featuredCourses: Course[] = [
     thumbnail: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=870&q=80",
     instructorName: "David Chen",
     enrolled: 982,
-    rating: 4.7,
-    price: 89.99,
+    price: 0,
     isFeatured: true,
     categories: ["Data Science", "Python", "Machine Learning"],
     duration: "38 hours"
@@ -41,8 +38,7 @@ export const featuredCourses: Course[] = [
     thumbnail: "https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=870&q=80",
     instructorName: "Maya Rodriguez",
     enrolled: 754,
-    rating: 4.9,
-    price: 69.99,
+    price: 0,
     isFeatured: true,
     categories: ["Design", "UX/UI", "Figma"],
     duration: "28 hours"
@@ -60,8 +56,7 @@ export const allCourses: Course[] = [
     thumbnail: "https://images.unsplash.com/photo-1575126473661-f5ff21669ccd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80",
     instructorName: "James Wilson",
     enrolled: 632,
-    rating: 4.6,
-    price: 74.99,
+    price: 0,
     categories: ["Mobile Development", "Flutter", "Dart"],
     duration: "34 hours"
   },
@@ -74,8 +69,7 @@ export const allCourses: Course[] = [
     thumbnail: "https://images.unsplash.com/photo-1510511459019-5dda7724fd87?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=774&q=80",
     instructorName: "Alex Morgan",
     enrolled: 845,
-    rating: 4.7,
-    price: 94.99,
+    price: 0,
     categories: ["Cybersecurity", "Network Security", "Ethical Hacking"],
     duration: "40 hours"
   },
@@ -88,8 +82,7 @@ export const allCourses: Course[] = [
     thumbnail: "https://images.unsplash.com/photo-1531746790731-6c087fecd65a?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=906&q=80",
     instructorName: "Emma Thompson",
     enrolled: 573,
-    rating: 4.8,
-    price: 99.99,
+    price: 0,
     categories: ["Artificial Intelligence", "Business", "Machine Learning"],
     duration: "36 hours"
   }
