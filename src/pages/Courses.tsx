@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/layout/Layout';
@@ -9,7 +10,6 @@ import { Badge } from '@/components/ui/badge';
 import { Search, SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import { Course } from '@/types';
 import { useToast } from '@/hooks/use-toast';
-import AddSampleCourse from '@/components/admin/AddSampleCourse';
 
 const fetchCourses = async (): Promise<Course[]> => {
   const response = await fetch('http://localhost:5000/api/courses');
