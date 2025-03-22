@@ -46,6 +46,7 @@ const BlogDetail = () => {
       user_id: 1, // assuming current user
       content: comment,
       created_at: new Date().toISOString(),
+      updated_at: null, // Add the updated_at property with a null value
       author: 'Người dùng hiện tại'
     };
 
