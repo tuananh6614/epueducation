@@ -1,14 +1,26 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Menu, X, ChevronDown } from 'lucide-react';
+import { Menu, X, User, LogOut } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const navLinks = [
     { name: 'Trang chủ', href: '/' },
@@ -30,6 +42,38 @@ const Navbar = () => {
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    // Kiểm tra trạng thái đăng nhập mỗi khi component mount
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+    
+    if (token && userData) {
+      setIsLoggedIn(true);
+      setUser(JSON.parse(userData));
+    } else {
+      setIsLoggedIn(false);
+      setUser(null);
+    }
+  }, []);
+
+  const handleLogout = () => {
+    // Xóa token và thông tin người dùng trong localStorage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Cập nhật trạng thái đăng nhập
+    setIsLoggedIn(false);
+    setUser(null);
+    
+    toast({
+      title: "Đăng xuất thành công",
+      description: "Bạn đã đăng xuất khỏi hệ thống",
+    });
+    
+    // Chuyển hướng về trang chủ
+    navigate('/');
+  };
 
   return (
     <header
@@ -66,12 +110,48 @@ const Navbar = () => {
         </nav>
 
         <div className="hidden md:flex items-center gap-4">
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/login">Đăng nhập</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link to="/register">Đăng ký</Link>
-          </Button>
+          {isLoggedIn ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="relative h-10 w-10 rounded-full">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <div className="flex items-center justify-start gap-2 p-2">
+                  <div className="flex flex-col space-y-1 leading-none">
+                    <p className="font-medium">{user?.fullName || user?.username}</p>
+                    <p className="text-sm text-muted-foreground">{user?.email}</p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile" className="cursor-pointer w-full">
+                    Trang cá nhân
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={handleLogout}
+                  className="text-red-500 focus:text-red-500 cursor-pointer"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Đăng xuất</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <>
+              <Button variant="outline" size="sm" asChild>
+                <Link to="/login">Đăng nhập</Link>
+              </Button>
+              <Button size="sm" asChild>
+                <Link to="/register">Đăng ký</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -112,13 +192,26 @@ const Navbar = () => {
               </Link>
             ))}
           </nav>
-          <div className="grid grid-cols-2 gap-4 mt-2">
-            <Button variant="outline" className="w-full" asChild>
-              <Link to="/login">Đăng nhập</Link>
-            </Button>
-            <Button className="w-full" asChild>
-              <Link to="/register">Đăng ký</Link>
-            </Button>
+          <div className="grid gap-4 mt-2">
+            {isLoggedIn ? (
+              <>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/profile">Trang cá nhân</Link>
+                </Button>
+                <Button variant="destructive" className="w-full" onClick={handleLogout}>
+                  Đăng xuất
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/login">Đăng nhập</Link>
+                </Button>
+                <Button className="w-full" asChild>
+                  <Link to="/register">Đăng ký</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>

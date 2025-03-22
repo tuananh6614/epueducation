@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,6 +14,18 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Lấy đường dẫn trước đó nếu có
+  const from = location.state?.from?.pathname || '/';
+
+  // Kiểm tra nếu người dùng đã đăng nhập, chuyển hướng đến trang chủ
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      navigate('/');
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +65,8 @@ const Login = () => {
         description: "Đăng nhập thành công",
       });
       
-      navigate('/');
+      // Chuyển hướng người dùng đến trang họ đã cố gắng truy cập trước đó hoặc trang chủ
+      navigate(from, { replace: true });
     } catch (error) {
       console.error('Login error:', error);
       toast({
