@@ -1,26 +1,52 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/layout/Layout';
 import SectionHeading from '@/components/ui/section-heading';
 import CourseCard from '@/components/ui/course-card';
-import { allCourses } from '@/data/mockData';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, SlidersHorizontal, X } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Loader2 } from 'lucide-react';
+import { Course } from '@/types';
+
+// Hàm để fetch dữ liệu khóa học từ API
+const fetchCourses = async (): Promise<Course[]> => {
+  const response = await fetch('http://localhost:5000/api/courses');
+  const data = await response.json();
+  
+  if (!data.success) {
+    throw new Error(data.message || 'Không thể tải danh sách khóa học');
+  }
+  
+  return data.data;
+};
 
 const Courses = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [filtersVisible, setFiltersVisible] = useState(false);
+  const [allCategories, setAllCategories] = useState<string[]>([]);
+
+  // Fetch courses using React Query
+  const { data: courses = [], isLoading, isError, error } = useQuery({
+    queryKey: ['courses'],
+    queryFn: fetchCourses,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
 
   // Extract all unique categories
-  const allCategories = Array.from(
-    new Set(allCourses.flatMap((course) => course.categories || []))
-  ).sort();
+  useEffect(() => {
+    if (courses.length > 0) {
+      const categories = Array.from(
+        new Set(courses.flatMap((course) => course.categories || []))
+      ).sort();
+      setAllCategories(categories);
+    }
+  }, [courses]);
 
   // Filter courses based on search term and selected categories
-  const filteredCourses = allCourses.filter((course) => {
+  const filteredCourses = courses.filter((course) => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          (course.description?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
     
@@ -109,23 +135,47 @@ const Courses = () => {
           )}
         </div>
 
-        {/* Courses Grid */}
-        {filteredCourses.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredCourses.map((course) => (
-              <div key={course.course_id} className="animate-scale-in opacity-0" style={{animationDelay: `${filteredCourses.indexOf(course) * 100}ms`, animationFillMode: 'forwards'}}>
-                <CourseCard course={course} />
-              </div>
-            ))}
+        {/* Loading and Error States */}
+        {isLoading && (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg">Đang tải khóa học...</p>
           </div>
-        ) : (
-          <div className="text-center py-16">
-            <h3 className="text-xl font-medium mb-2">Không tìm thấy khóa học</h3>
-            <p className="text-muted-foreground mb-6">
-              Hãy điều chỉnh tìm kiếm hoặc bộ lọc của bạn
+        )}
+
+        {isError && (
+          <div className="text-center py-12 bg-red-50 rounded-lg">
+            <h3 className="text-xl font-medium mb-2 text-red-700">Đã xảy ra lỗi</h3>
+            <p className="text-red-600 mb-4">
+              {error instanceof Error ? error.message : 'Không thể tải danh sách khóa học'}
             </p>
-            <Button onClick={clearFilters}>Xóa tất cả bộ lọc</Button>
+            <Button variant="destructive" onClick={() => window.location.reload()}>
+              Thử lại
+            </Button>
           </div>
+        )}
+
+        {/* Courses Grid */}
+        {!isLoading && !isError && (
+          <>
+            {filteredCourses.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredCourses.map((course) => (
+                  <div key={course.course_id} className="animate-scale-in opacity-0" style={{animationDelay: `${filteredCourses.indexOf(course) * 100}ms`, animationFillMode: 'forwards'}}>
+                    <CourseCard course={course} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <h3 className="text-xl font-medium mb-2">Không tìm thấy khóa học</h3>
+                <p className="text-muted-foreground mb-6">
+                  Hãy điều chỉnh tìm kiếm hoặc bộ lọc của bạn
+                </p>
+                <Button onClick={clearFilters}>Xóa tất cả bộ lọc</Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </Layout>

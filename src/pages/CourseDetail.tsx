@@ -1,17 +1,41 @@
 
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { allCourses, featuredLessons } from '@/data/mockData';
-import { BookOpen, Clock, PlayCircle, BarChart, CheckCircle, User, Globe } from 'lucide-react';
+import { BookOpen, Clock, PlayCircle, BarChart, CheckCircle, User, Globe, Loader2 } from 'lucide-react';
 import { Course } from '@/types';
 import NotFound from './NotFound';
 import { useToast } from '@/hooks/use-toast';
+
+// Hàm để fetch chi tiết khóa học từ API
+const fetchCourseDetail = async (courseId: string): Promise<any> => {
+  const response = await fetch(`http://localhost:5000/api/courses/${courseId}`);
+  const data = await response.json();
+  
+  if (!data.success) {
+    throw new Error(data.message || 'Không thể tải chi tiết khóa học');
+  }
+  
+  return data.data;
+};
+
+// Hàm để fetch khóa học liên quan từ API
+const fetchRelatedCourses = async (): Promise<Course[]> => {
+  const response = await fetch('http://localhost:5000/api/courses');
+  const data = await response.json();
+  
+  if (!data.success) {
+    throw new Error(data.message || 'Không thể tải khóa học liên quan');
+  }
+  
+  return data.data;
+};
 
 // CourseCard component
 const CourseCard = ({ course }: { course: Course }) => {
@@ -57,17 +81,72 @@ const CourseDetail = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Find the course by ID
-  const course = allCourses.find((c) => c.course_id === Number(courseId));
+  // Fetch course details
+  const { 
+    data: courseDetail, 
+    isLoading: isLoadingDetail, 
+    isError: isErrorDetail,
+    error: errorDetail
+  } = useQuery({
+    queryKey: ['course', courseId],
+    queryFn: () => fetchCourseDetail(courseId || ''),
+    enabled: !!courseId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
   
-  if (!course) {
-    return <NotFound />;
+  // Fetch related courses
+  const { 
+    data: relatedCourses = [], 
+    isLoading: isLoadingRelated 
+  } = useQuery({
+    queryKey: ['courses'],
+    queryFn: fetchRelatedCourses,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  // Filter related courses
+  const filteredRelatedCourses = relatedCourses
+    .filter(c => c.course_id !== Number(courseId))
+    .filter(c => 
+      c.categories?.some(cat => courseDetail?.categories?.includes(cat))
+    )
+    .slice(0, 3);
+  
+  // Show loading state
+  if (isLoadingDetail) {
+    return (
+      <Layout>
+        <div className="flex flex-col items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+          <p className="text-lg">Đang tải chi tiết khóa học...</p>
+        </div>
+      </Layout>
+    );
   }
-
+  
+  // Show error state
+  if (isErrorDetail || !courseDetail) {
+    const errorMessage = errorDetail instanceof Error 
+      ? errorDetail.message 
+      : 'Không thể tải chi tiết khóa học';
+      
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h2 className="text-2xl font-bold mb-4">Đã xảy ra lỗi</h2>
+          <p className="text-red-500 mb-6">{errorMessage}</p>
+          <Button onClick={() => navigate('/courses')}>
+            Quay lại danh sách khóa học
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
+  
   // Mock data for the course
   const courseDetails = {
-    lessons: 42,
-    duration: course.duration || '36 giờ',
+    lessons: courseDetail.lessons?.length || 0,
+    duration: courseDetail.duration || '36 giờ',
     level: 'Trung cấp',
     language: 'Tiếng Việt',
     lastUpdated: '2 tháng trước',
@@ -82,29 +161,27 @@ const CourseDetail = () => {
     curriculum: [
       {
         title: 'Bắt đầu',
-        lessons: [
-          { title: 'Giới thiệu khóa học', duration: '10 phút', isPreview: true },
-          { title: 'Thiết lập môi trường của bạn', duration: '20 phút', isPreview: false },
-          { title: 'Hiểu về các kiến thức cơ bản', duration: '25 phút', isPreview: false }
-        ]
+        lessons: courseDetail.lessons?.slice(0, 3).map(lesson => ({
+          title: lesson.title,
+          duration: lesson.duration ? `${lesson.duration} phút` : '10 phút',
+          isPreview: lesson.is_free
+        })) || []
       },
       {
         title: 'Khái niệm cốt lõi',
-        lessons: [
-          { title: 'Nguyên tắc cơ bản', duration: '30 phút', isPreview: true },
-          { title: 'Kỹ thuật nâng cao', duration: '45 phút', isPreview: false },
-          { title: 'Ứng dụng thực tế', duration: '40 phút', isPreview: false },
-          { title: 'Cách tiếp cận giải quyết vấn đề', duration: '35 phút', isPreview: false }
-        ]
+        lessons: courseDetail.lessons?.slice(3, 7).map(lesson => ({
+          title: lesson.title,
+          duration: lesson.duration ? `${lesson.duration} phút` : '20 phút',
+          isPreview: lesson.is_free
+        })) || []
       },
       {
         title: 'Xây dựng dự án',
-        lessons: [
-          { title: 'Lập kế hoạch dự án', duration: '25 phút', isPreview: false },
-          { title: 'Chiến lược triển khai', duration: '50 phút', isPreview: false },
-          { title: 'Kiểm tra và gỡ lỗi', duration: '40 phút', isPreview: false },
-          { title: 'Triển khai và bảo trì', duration: '35 phút', isPreview: false }
-        ]
+        lessons: courseDetail.lessons?.slice(7).map(lesson => ({
+          title: lesson.title,
+          duration: lesson.duration ? `${lesson.duration} phút` : '30 phút',
+          isPreview: lesson.is_free
+        })) || []
       }
     ],
     reviews: [
@@ -149,7 +226,7 @@ const CourseDetail = () => {
     // If logged in, show success message
     toast({
       title: "Đăng ký thành công",
-      description: `Bạn đã đăng ký khóa học "${course.title}" thành công.`,
+      description: `Bạn đã đăng ký khóa học "${courseDetail.title}" thành công.`,
     });
   };
 
@@ -162,7 +239,7 @@ const CourseDetail = () => {
             {/* Course Info */}
             <div className="w-full md:w-3/5 animate-slide-up">
               <div className="flex flex-wrap gap-2 mb-4">
-                {course.categories?.map((category) => (
+                {courseDetail.categories?.map((category: string) => (
                   <Badge key={category} variant="outline">
                     {category}
                   </Badge>
@@ -170,20 +247,20 @@ const CourseDetail = () => {
               </div>
               
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-medium mb-4 leading-tight">
-                {course.title}
+                {courseDetail.title}
               </h1>
               
               <p className="text-lg text-muted-foreground mb-6">
-                {course.description}
+                {courseDetail.description}
               </p>
               
               <div className="flex flex-wrap items-center gap-4 mb-8 text-sm">
                 <div className="flex items-center gap-1">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span>Giảng viên: <strong>{course.instructorName}</strong></span>
+                  <span>Giảng viên: <strong>{courseDetail.instructorName || 'Giảng viên'}</strong></span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span><strong>{course.enrolled}</strong> học viên</span>
+                  <span><strong>{courseDetail.enrolled || 0}</strong> học viên</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4 text-muted-foreground" />
@@ -208,8 +285,8 @@ const CourseDetail = () => {
             <div className="w-full md:w-2/5 animate-slide-up animation-delay-200">
               <div className="aspect-video rounded-lg overflow-hidden shadow-xl relative">
                 <img 
-                  src={course.thumbnail} 
-                  alt={course.title} 
+                  src={courseDetail.thumbnail || 'https://images.unsplash.com/photo-1488190211105-8b0e65b80b4e'} 
+                  alt={courseDetail.title} 
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -367,19 +444,25 @@ const CourseDetail = () => {
       <div className="bg-muted/30 py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-medium mb-8">Khóa học liên quan</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {allCourses
-              .filter(c => c.course_id !== course.course_id)
-              .filter(c => 
-                c.categories?.some(cat => course.categories?.includes(cat))
-              )
-              .slice(0, 3)
-              .map((relatedCourse) => (
-                <div key={relatedCourse.course_id} className="animate-scale-in opacity-0" style={{animationDelay: `${allCourses.indexOf(relatedCourse) * 100}ms`, animationFillMode: 'forwards'}}>
-                  <CourseCard course={relatedCourse} />
+          {isLoadingRelated ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {filteredRelatedCourses.length > 0 ? (
+                filteredRelatedCourses.map((relatedCourse) => (
+                  <div key={relatedCourse.course_id} className="animate-scale-in opacity-0" style={{animationDelay: `${filteredRelatedCourses.indexOf(relatedCourse) * 100}ms`, animationFillMode: 'forwards'}}>
+                    <CourseCard course={relatedCourse} />
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-3 text-center py-8">
+                  <p className="text-muted-foreground">Không có khóa học liên quan</p>
                 </div>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
       
