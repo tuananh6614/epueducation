@@ -20,7 +20,7 @@ const createConnection = async () => {
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'learningplatform' // Tên database đã được cập nhật
+    database: 'learningplatform'
   });
 };
 
@@ -153,6 +153,31 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Authentication middleware
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({ 
+      success: false, 
+      message: 'Yêu cầu đăng nhập' 
+    });
+  }
+  
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Token không hợp lệ hoặc hết hạn' 
+      });
+    }
+    
+    req.user = user;
+    next();
+  });
+};
+
 // Course routes
 app.get('/api/courses', async (req, res) => {
   try {
@@ -225,30 +250,282 @@ app.get('/api/courses/:id', async (req, res) => {
   }
 });
 
-// Authentication middleware
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ 
+// Blog routes - NEW
+app.get('/api/posts', async (req, res) => {
+  try {
+    const connection = await createConnection();
+    
+    const [posts] = await connection.execute(`
+      SELECT p.*, u.username as author, 
+      (SELECT COUNT(*) FROM comments WHERE post_id = p.post_id) as comments_count,
+      (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) as likes_count
+      FROM blog_posts p
+      JOIN users u ON p.author_id = u.user_id
+      WHERE p.is_published = 1
+      ORDER BY p.created_at DESC
+    `);
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      data: posts
+    });
+  } catch (error) {
+    console.error('Get posts error:', error);
+    res.status(500).json({ 
       success: false, 
-      message: 'Yêu cầu đăng nhập' 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
     });
   }
-  
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ 
+});
+
+app.get('/api/posts/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const connection = await createConnection();
+    
+    // Get post details
+    const [posts] = await connection.execute(`
+      SELECT p.*, u.username as author
+      FROM blog_posts p
+      JOIN users u ON p.author_id = u.user_id
+      WHERE p.post_id = ?
+    `, [id]);
+    
+    if (posts.length === 0) {
+      await connection.end();
+      return res.status(404).json({ 
         success: false, 
-        message: 'Token không hợp lệ hoặc hết hạn' 
+        message: 'Không tìm thấy bài viết' 
       });
     }
     
-    req.user = user;
-    next();
-  });
-};
+    // Get comments
+    const [comments] = await connection.execute(`
+      SELECT c.*, u.username as author
+      FROM comments c
+      JOIN users u ON c.user_id = u.user_id
+      WHERE c.post_id = ?
+      ORDER BY c.created_at
+    `, [id]);
+    
+    // Get likes count
+    const [likesCount] = await connection.execute(`
+      SELECT COUNT(*) as count FROM likes WHERE post_id = ?
+    `, [id]);
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      data: {
+        ...posts[0],
+        comments,
+        likes_count: likesCount[0].count
+      }
+    });
+  } catch (error) {
+    console.error('Get post error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Protected post routes
+app.post('/api/posts', authenticateToken, async (req, res) => {
+  try {
+    const { title, content, thumbnail } = req.body;
+    
+    if (!title || !content) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tiêu đề và nội dung là bắt buộc'
+      });
+    }
+    
+    const connection = await createConnection();
+    
+    // Create post
+    const [result] = await connection.execute(`
+      INSERT INTO blog_posts (title, content, thumbnail, author_id, is_published)
+      VALUES (?, ?, ?, ?, 1)
+    `, [title, content, thumbnail || null, req.user.id]);
+    
+    await connection.end();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Đăng bài thành công',
+      data: {
+        post_id: result.insertId
+      }
+    });
+  } catch (error) {
+    console.error('Create post error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Comment routes - NEW
+app.post('/api/comments', authenticateToken, async (req, res) => {
+  try {
+    const { content, post_id } = req.body;
+    
+    if (!content) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nội dung bình luận không được để trống'
+      });
+    }
+    
+    const connection = await createConnection();
+    
+    // Add comment
+    const [result] = await connection.execute(`
+      INSERT INTO comments (content, user_id, post_id)
+      VALUES (?, ?, ?)
+    `, [content, req.user.id, post_id]);
+    
+    // Get comment with author info
+    const [comments] = await connection.execute(`
+      SELECT c.*, u.username as author
+      FROM comments c
+      JOIN users u ON c.user_id = u.user_id
+      WHERE c.comment_id = ?
+    `, [result.insertId]);
+    
+    await connection.end();
+    
+    res.status(201).json({
+      success: true,
+      message: 'Bình luận thành công',
+      data: comments[0]
+    });
+  } catch (error) {
+    console.error('Add comment error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Like routes - NEW
+app.post('/api/likes', authenticateToken, async (req, res) => {
+  try {
+    const { post_id, comment_id } = req.body;
+    
+    if (!post_id && !comment_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cần có ID bài viết hoặc bình luận'
+      });
+    }
+    
+    const connection = await createConnection();
+    
+    try {
+      // Try to add like (will fail if already liked due to unique constraint)
+      if (post_id) {
+        await connection.execute(`
+          INSERT INTO likes (user_id, post_id)
+          VALUES (?, ?)
+        `, [req.user.id, post_id]);
+      } else {
+        await connection.execute(`
+          INSERT INTO likes (user_id, comment_id)
+          VALUES (?, ?)
+        `, [req.user.id, comment_id]);
+      }
+      
+      await connection.end();
+      
+      res.status(201).json({
+        success: true,
+        message: 'Đã thích thành công',
+        liked: true
+      });
+    } catch (err) {
+      // If error is duplicate entry, remove the like instead
+      if (err.code === 'ER_DUP_ENTRY') {
+        if (post_id) {
+          await connection.execute(`
+            DELETE FROM likes 
+            WHERE user_id = ? AND post_id = ?
+          `, [req.user.id, post_id]);
+        } else {
+          await connection.execute(`
+            DELETE FROM likes 
+            WHERE user_id = ? AND comment_id = ?
+          `, [req.user.id, comment_id]);
+        }
+        
+        await connection.end();
+        
+        res.json({
+          success: true,
+          message: 'Đã bỏ thích thành công',
+          liked: false
+        });
+      } else {
+        throw err;
+      }
+    }
+  } catch (error) {
+    console.error('Like error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Check if user has liked a post/comment - NEW
+app.get('/api/likes/check', authenticateToken, async (req, res) => {
+  try {
+    const { post_id, comment_id } = req.query;
+    
+    if (!post_id && !comment_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cần có ID bài viết hoặc bình luận'
+      });
+    }
+    
+    const connection = await createConnection();
+    
+    let query, params;
+    
+    if (post_id) {
+      query = 'SELECT * FROM likes WHERE user_id = ? AND post_id = ?';
+      params = [req.user.id, post_id];
+    } else {
+      query = 'SELECT * FROM likes WHERE user_id = ? AND comment_id = ?';
+      params = [req.user.id, comment_id];
+    }
+    
+    const [likes] = await connection.execute(query, params);
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      liked: likes.length > 0
+    });
+  } catch (error) {
+    console.error('Check like error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
 
 // Protected user routes
 app.get('/api/user', authenticateToken, async (req, res) => {
