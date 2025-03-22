@@ -1,98 +1,104 @@
 
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
+import { featuredBlogPosts } from '@/data/mockData';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Heart, MessageCircle, Share2, ThumbsUp, Send, Edit, Trash2, Clock, Calendar } from 'lucide-react';
-import { featuredBlogPosts } from '@/data/mockData';
-import { BlogPost, Comment } from '@/types';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent } from '@/components/ui/card';
+import { formatDistanceToNow } from 'date-fns';
+import { Heart, MessageSquare, Share } from 'lucide-react';
+import { Comment } from '@/types';
+import { useAuthCheck } from '@/utils/authCheck';
 
 const BlogDetail = () => {
   const { postId } = useParams<{ postId: string }>();
-  const { toast } = useToast();
-  const [comment, setComment] = useState('');
   const [comments, setComments] = useState<Comment[]>([]);
-  const [liked, setLiked] = useState(false);
-
-  // Find the current post from mock data
-  const post = featuredBlogPosts.find(p => p.post_id.toString() === postId) as BlogPost;
-
+  const [commentText, setCommentText] = useState('');
+  const [likes, setLikes] = useState<number>(0);
+  const checkAuth = useAuthCheck();
+  
+  // Find the post by ID
+  const post = featuredBlogPosts.find((p) => p.post_id === Number(postId));
+  
+  const handleLike = () => {
+    if (checkAuth('thích bài viết')) {
+      setLikes(likes + 1);
+    }
+  };
+  
+  const handleShare = () => {
+    if (checkAuth('chia sẻ bài viết')) {
+      // Share logic would go here
+      console.log('Shared post');
+    }
+  };
+  
+  const handleCommentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!checkAuth('bình luận')) {
+      return;
+    }
+    
+    if (!commentText.trim()) return;
+    
+    // Get the current user from localStorage
+    const userString = localStorage.getItem('user');
+    const user = userString ? JSON.parse(userString) : null;
+    
+    if (!user) {
+      return;
+    }
+    
+    const newComment: Comment = {
+      comment_id: comments.length + 1,
+      post_id: Number(postId),
+      user_id: user.id,
+      content: commentText,
+      created_at: new Date().toISOString(),
+      updated_at: null,
+      author: user.username,
+    };
+    
+    setComments([newComment, ...comments]);
+    setCommentText('');
+  };
+  
   if (!post) {
     return (
       <Layout>
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold mb-4">Bài viết không tồn tại</h1>
-          <p className="mb-6">Bài viết bạn đang tìm kiếm có thể đã bị xóa hoặc di chuyển.</p>
-          <Button asChild>
-            <Link to="/blog">Quay lại trang blog</Link>
-          </Button>
+        <div className="container mx-auto px-4 py-12">
+          <h1 className="text-2xl font-bold">Bài viết không tồn tại</h1>
         </div>
       </Layout>
     );
   }
-
-  const handleCommentSubmit = () => {
-    if (!comment.trim()) return;
-
-    const newComment: Comment = {
-      comment_id: Math.floor(Math.random() * 1000),
-      post_id: post.post_id,
-      user_id: 1, // assuming current user
-      content: comment,
-      created_at: new Date().toISOString(),
-      updated_at: null, // Add the updated_at property with a null value
-      author: 'Người dùng hiện tại'
-    };
-
-    setComments([...comments, newComment]);
-    setComment('');
-    toast({
-      title: "Bình luận đã được đăng",
-      description: "Bình luận của bạn đã được đăng thành công",
-    });
-  };
-
-  const handleLike = () => {
-    setLiked(!liked);
-    toast({
-      title: liked ? "Đã bỏ thích" : "Đã thích",
-      description: liked ? "Bạn đã bỏ thích bài viết này" : "Bạn đã thích bài viết này",
-    });
-  };
-
-  const handleShare = () => {
-    // Copy URL to clipboard
-    navigator.clipboard.writeText(window.location.href);
-    toast({
-      title: "Đã sao chép liên kết",
-      description: "Liên kết bài viết đã được sao chép vào clipboard",
-    });
-  };
-
+  
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        {/* Back button */}
-        <div className="mb-6">
-          <Button variant="ghost" asChild>
-            <Link to="/blog" className="flex items-center text-muted-foreground hover:text-foreground">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M9.707 14.707a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 1.414L7.414 9H15a1 1 0 110 2H7.414l2.293 2.293a1 1 0 010 1.414z" clipRule="evenodd" />
-              </svg>
-              Quay lại trang Blog
-            </Link>
-          </Button>
-        </div>
-
-        {/* Blog post */}
-        <Card className="mb-8 overflow-hidden border-none shadow-md">
-          <div className="aspect-[16/9] relative overflow-hidden">
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-4xl mx-auto">
+          {/* Post Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">{post.title}</h1>
+            <div className="flex items-center gap-4 mb-6">
+              <Avatar>
+                <AvatarImage src={`https://ui-avatars.com/api/?name=${post.author}&background=random`} />
+                <AvatarFallback>{post.author?.substring(0, 2)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-medium">{post.author}</div>
+                <div className="text-sm text-muted-foreground">
+                  {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Featured Image */}
+          <div className="aspect-video w-full rounded-lg overflow-hidden mb-8">
             <img 
               src={post.thumbnail} 
               alt={post.title} 
@@ -100,215 +106,117 @@ const BlogDetail = () => {
             />
           </div>
           
-          <CardHeader className="space-y-4">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{post.title}</h1>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>{new Date(post.created_at).toLocaleDateString('vi-VN')}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>{post.comments_count || comments.length} bình luận</span>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author}`} />
-                <AvatarFallback>{post.author?.substring(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{post.author}</p>
-                <p className="text-xs text-muted-foreground">Tác giả</p>
-              </div>
-            </div>
-          </CardHeader>
-          
-          <CardContent className="prose prose-lg max-w-none">
-            <div dangerouslySetInnerHTML={{ __html: post.content || post.excerpt || '' }} />
-          </CardContent>
-          
-          <CardFooter className="border-t p-4">
-            <div className="flex justify-between items-center w-full">
-              <div className="flex gap-4">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={`gap-2 ${liked ? 'text-blue-500' : ''}`}
-                  onClick={handleLike}
-                >
-                  <ThumbsUp className="h-4 w-4" />
-                  <span>Thích</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="gap-2"
-                  onClick={() => document.getElementById('comment-input')?.focus()}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                  <span>Bình luận</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="gap-2"
-                  onClick={handleShare}
-                >
-                  <Share2 className="h-4 w-4" />
-                  <span>Chia sẻ</span>
-                </Button>
-              </div>
-              
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Edit className="h-4 w-4" />
-                    <span>Chỉnh sửa</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>Chỉnh sửa bài viết</DialogTitle>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Input
-                        id="title"
-                        placeholder="Tiêu đề bài viết"
-                        defaultValue={post.title}
-                        className="text-lg"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Textarea
-                        id="content"
-                        placeholder="Nội dung bài viết"
-                        defaultValue={post.content || post.excerpt || ''}
-                        className="min-h-[300px]"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex justify-end">
-                    <Button type="submit" onClick={() => toast({
-                      title: "Bài viết đã được cập nhật",
-                      description: "Bài viết của bạn đã được cập nhật thành công"
-                    })}>
-                      Lưu thay đổi
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardFooter>
-        </Card>
-
-        {/* Comments section */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-bold">Bình luận ({post.comments_count || comments.length})</h2>
-          
-          {/* Comment input */}
-          <div className="flex gap-3 mb-6">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=user" />
-              <AvatarFallback>U</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 flex gap-2">
-              <Textarea
-                id="comment-input"
-                placeholder="Viết bình luận của bạn..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                className="flex-1 min-h-[80px] resize-none"
-              />
-              <Button 
-                onClick={handleCommentSubmit}
-                disabled={!comment.trim()}
-                size="icon"
-                className="h-10 w-10 self-end"
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+          {/* Post Content */}
+          <div className="prose max-w-none mb-10">
+            <p className="mb-4 text-lg">
+              {post.excerpt}
+            </p>
+            <p className="mb-4">
+              Trong thế giới công nghệ ngày nay, việc học trực tuyến đã trở thành một phần không thể thiếu trong hành trình giáo dục của nhiều người. Từ sinh viên đại học đến chuyên gia muốn nâng cao kỹ năng, các nền tảng học trực tuyến cung cấp cơ hội tiếp cận với kiến thức mà không bị giới hạn bởi không gian hay thời gian.
+            </p>
+            <p className="mb-4">
+              Lợi ích của học trực tuyến không chỉ dừng lại ở tính linh hoạt. Nó còn mang đến khả năng tiếp cận với các giảng viên hàng đầu từ khắp nơi trên thế giới, tài nguyên học tập phong phú, và cộng đồng học viên đa dạng. Điều này tạo ra một môi trường học tập phong phú và toàn diện, nơi kiến thức không chỉ đến từ giáo trình mà còn từ sự tương tác và chia sẻ giữa những người tham gia.
+            </p>
+            <h2 className="text-2xl font-bold mt-8 mb-4">Các xu hướng mới trong học trực tuyến</h2>
+            <p className="mb-4">
+              Công nghệ tiếp tục phát triển, và cùng với nó, các phương pháp học trực tuyến cũng không ngừng đổi mới. Từ việc áp dụng trí tuệ nhân tạo để cá nhân hóa trải nghiệm học tập đến việc tích hợp thực tế ảo để tạo ra các môi trường học tập immersive, ranh giới giữa lớp học truyền thống và kỹ thuật số đang dần mờ đi.
+            </p>
+            <p className="mb-4">
+              Một xu hướng đáng chú ý khác là sự phát triển của các khóa học vi mô (microlearning), nơi nội dung học tập được chia thành các phần nhỏ, dễ tiêu hóa, giúp người học dễ dàng tích hợp việc học vào lịch trình bận rộn của họ. Điều này đặc biệt hữu ích cho những người làm việc toàn thời gian nhưng vẫn muốn nâng cao kỹ năng.
+            </p>
+            <h2 className="text-2xl font-bold mt-8 mb-4">Kết luận</h2>
+            <p className="mb-4">
+              Học trực tuyến không phải là xu hướng tạm thời mà là một chuyển đổi cơ bản trong cách chúng ta tiếp cận giáo dục. Với công nghệ tiếp tục phát triển và trở nên ngày càng tích hợp vào cuộc sống hàng ngày của chúng ta, học trực tuyến sẽ chỉ trở nên phổ biến và tinh vi hơn.
+            </p>
+            <p>
+              Dù bạn đang tìm kiếm bằng cấp, phát triển kỹ năng chuyên môn, hay chỉ đơn giản là tìm hiểu về một chủ đề mới vì sự tò mò, học trực tuyến cung cấp một cánh cửa đến với kiến thức mà trước đây có thể không dễ dàng tiếp cận được. Đó là một công cụ mạnh mẽ cho sự phát triển cá nhân và chuyên môn trong thế kỷ 21.
+            </p>
           </div>
           
-          {/* Comment list */}
-          <div className="space-y-4">
-            {comments.map((comment) => (
-              <Card key={comment.comment_id} className="border shadow-sm">
-                <CardHeader className="p-4 pb-2 flex-row items-start space-y-0 gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author}`} />
-                    <AvatarFallback>{comment.author?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium">{comment.author}</p>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(comment.created_at).toLocaleDateString('vi-VN')}
-                        </p>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+          {/* Social Interactions */}
+          <div className="flex items-center justify-between border-t border-b py-4 mb-8">
+            <div className="flex items-center gap-6">
+              <button 
+                onClick={handleLike}
+                className="flex items-center gap-2 hover:text-primary transition-colors"
+              >
+                <Heart className={`h-5 w-5 ${likes > 0 ? 'fill-primary text-primary' : ''}`} />
+                <span>{likes} Thích</span>
+              </button>
+              <button className="flex items-center gap-2 hover:text-primary transition-colors">
+                <MessageSquare className="h-5 w-5" />
+                <span>{comments.length} Bình luận</span>
+              </button>
+            </div>
+            <button 
+              onClick={handleShare}
+              className="flex items-center gap-2 hover:text-primary transition-colors"
+            >
+              <Share className="h-5 w-5" />
+              <span>Chia sẻ</span>
+            </button>
+          </div>
+          
+          {/* Comments Section */}
+          <div>
+            <h2 className="text-2xl font-bold mb-6">Bình luận</h2>
+            
+            {/* Comment Form */}
+            <form onSubmit={handleCommentSubmit} className="mb-8">
+              <Textarea 
+                placeholder="Viết bình luận của bạn..." 
+                className="mb-3 min-h-24"
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+              />
+              <Button type="submit">Đăng bình luận</Button>
+            </form>
+            
+            {/* Comments List */}
+            <div className="space-y-6">
+              {comments.map((comment) => (
+                <Card key={comment.comment_id}>
+                  <CardContent className="p-4">
+                    <div className="flex items-start gap-4">
+                      <Avatar>
+                        <AvatarImage src={`https://ui-avatars.com/api/?name=${comment.author}&background=random`} />
+                        <AvatarFallback>{comment.author?.substring(0, 2)}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="font-medium">{comment.author}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                          </div>
+                        </div>
+                        <p className="text-sm">{comment.content}</p>
                       </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-2">
-                  <p>{comment.content}</p>
-                </CardContent>
-                <CardFooter className="p-4 pt-0 flex gap-2">
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-sm">
-                    <ThumbsUp className="h-3 w-3 mr-1" /> Thích
-                  </Button>
-                  <Button variant="ghost" size="sm" className="h-8 px-2 text-sm">
-                    <MessageCircle className="h-3 w-3 mr-1" /> Phản hồi
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-            
-            {/* Example existing comment */}
-            <Card className="border shadow-sm">
-              <CardHeader className="p-4 pb-2 flex-row items-start space-y-0 gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=NguyenVanA" />
-                  <AvatarFallback>NV</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-medium">Nguyễn Văn A</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {new Date().toLocaleDateString('vi-VN')}
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {/* Mock initial comment */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <Avatar>
+                      <AvatarImage src={`https://ui-avatars.com/api/?name=Jane%20Doe&background=random`} />
+                      <AvatarFallback>JD</AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="font-medium">Jane Doe</div>
+                        <div className="text-xs text-muted-foreground">2 ngày trước</div>
+                      </div>
+                      <p className="text-sm">
+                        Bài viết rất hay và đầy đủ thông tin. Tôi đặc biệt thích phần về xu hướng mới trong học trực tuyến, đã cho tôi nhiều góc nhìn mới về lĩnh vực này.
                       </p>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 pt-2">
-                <p>Bài viết rất hay và bổ ích! Cảm ơn tác giả đã chia sẻ.</p>
-              </CardContent>
-              <CardFooter className="p-4 pt-0 flex gap-2">
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-sm">
-                  <ThumbsUp className="h-3 w-3 mr-1" /> Thích
-                </Button>
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-sm">
-                  <MessageCircle className="h-3 w-3 mr-1" /> Phản hồi
-                </Button>
-              </CardFooter>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
       </div>

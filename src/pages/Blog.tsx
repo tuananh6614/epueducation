@@ -1,342 +1,253 @@
 
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import SectionHeading from '@/components/ui/section-heading';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Search, Calendar, MessageCircle, User, Plus, ThumbsUp, Share2, Image, Smile, Link, PlusCircle } from 'lucide-react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { featuredBlogPosts } from '@/data/mockData';
+import { formatDistanceToNow } from 'date-fns';
+import { BlogPost } from '@/types';
+import { SectionHeading } from '@/components/ui/section-heading';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthCheck } from '@/utils/authCheck';
+
+const BlogPostCard = ({ post }: { post: BlogPost }) => {
+  return (
+    <Card className="overflow-hidden h-full">
+      <div className="aspect-video overflow-hidden">
+        <img 
+          src={post.thumbnail} 
+          alt={post.title} 
+          className="w-full h-full object-cover transition-transform hover:scale-105"
+        />
+      </div>
+      <CardContent className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={`https://ui-avatars.com/api/?name=${post.author}&background=random`} />
+            <AvatarFallback>{post.author?.substring(0, 2)}</AvatarFallback>
+          </Avatar>
+          <div>
+            <div className="font-medium text-sm">{post.author}</div>
+            <div className="text-xs text-muted-foreground">
+              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+            </div>
+          </div>
+        </div>
+        <h3 className="text-xl font-medium mb-2">
+          <Link to={`/blog/${post.post_id}`} className="hover:text-primary transition-colors">
+            {post.title}
+          </Link>
+        </h3>
+        <p className="text-muted-foreground line-clamp-3 mb-4">
+          {post.excerpt}
+        </p>
+        <div className="flex justify-between items-center">
+          <Link to={`/blog/${post.post_id}`} className="text-primary hover:underline text-sm">
+            Đọc tiếp
+          </Link>
+          <div className="text-sm text-muted-foreground">
+            {post.comments_count} bình luận
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const Blog = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [newPostTitle, setNewPostTitle] = useState('');
-  const [newPostContent, setNewPostContent] = useState('');
+  const [posts, setPosts] = useState<BlogPost[]>(featuredBlogPosts);
+  const [postContent, setPostContent] = useState('');
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newPost, setNewPost] = useState({
+    title: '',
+    content: '',
+    thumbnail: ''
+  });
   const { toast } = useToast();
-
-  // Filter blog posts based on search term
-  const filteredPosts = featuredBlogPosts.filter((post) => 
-    post.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    post.content?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const handleCreatePost = () => {
-    if (!newPostTitle.trim() || !newPostContent.trim()) {
-      toast({
-        title: "Thiếu thông tin",
-        description: "Vui lòng nhập tiêu đề và nội dung bài viết",
-        variant: "destructive"
-      });
+  const checkAuth = useAuthCheck();
+  
+  const handleCreatePost = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!checkAuth('đăng bài')) {
       return;
     }
     
-    // Would normally create a post through an API, but we'll simulate it for now
-    toast({
-      title: "Bài viết đã được tạo",
-      description: "Bài viết của bạn đã được đăng thành công",
+    const userString = localStorage.getItem('user');
+    const user = userString ? JSON.parse(userString) : null;
+    
+    if (!user) {
+      return;
+    }
+    
+    // Create a new post
+    const newPostObj: BlogPost = {
+      post_id: posts.length + 1,
+      user_id: user.id,
+      title: newPost.title,
+      content: newPost.content,
+      created_at: new Date().toISOString(),
+      author: user.username,
+      excerpt: newPost.content?.substring(0, 150) + '...',
+      thumbnail: newPost.thumbnail || 'https://images.unsplash.com/photo-1501504905252-473c47e087f8',
+      comments_count: 0
+    };
+    
+    setPosts([newPostObj, ...posts]);
+    setIsCreateOpen(false);
+    setNewPost({
+      title: '',
+      content: '',
+      thumbnail: ''
     });
     
-    // Reset form
-    setNewPostTitle('');
-    setNewPostContent('');
+    toast({
+      title: "Thành công",
+      description: "Bài viết của bạn đã được đăng",
+    });
   };
-
+  
+  const handleQuickPost = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!checkAuth('đăng bài')) {
+      return;
+    }
+    
+    if (!postContent.trim()) return;
+    
+    const userString = localStorage.getItem('user');
+    const user = userString ? JSON.parse(userString) : null;
+    
+    if (!user) {
+      return;
+    }
+    
+    // Create a new post
+    const newPostObj: BlogPost = {
+      post_id: posts.length + 1,
+      user_id: user.id,
+      title: postContent.substring(0, 50) + (postContent.length > 50 ? '...' : ''),
+      content: postContent,
+      created_at: new Date().toISOString(),
+      author: user.username,
+      excerpt: postContent.substring(0, 150) + '...',
+      thumbnail: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8',
+      comments_count: 0
+    };
+    
+    setPosts([newPostObj, ...posts]);
+    setPostContent('');
+    
+    toast({
+      title: "Thành công",
+      description: "Bài viết của bạn đã được đăng",
+    });
+  };
+  
+  const openCreateDialog = () => {
+    if (checkAuth('tạo bài viết mới')) {
+      setIsCreateOpen(true);
+    }
+  };
+  
+  const handleQuickPostClick = () => {
+    if (!postContent.trim()) {
+      checkAuth('đăng bài viết');
+    }
+  };
+  
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
-        <SectionHeading 
-          title="Cộng đồng học tập" 
-          subtitle="Chia sẻ kiến thức, đặt câu hỏi và kết nối với những người học khác" 
-          className="mb-10"
+        <SectionHeading
+          title="Blog"
+          description="Chia sẻ kiến thức và trải nghiệm học tập"
         />
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-          <div className="lg:col-span-2 space-y-6">
-            {/* Create post card */}
-            <Card className="shadow-sm">
-              <CardHeader className="pb-3">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=currentUser" />
-                    <AvatarFallback>U</AvatarFallback>
-                  </Avatar>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Input 
-                        placeholder="Bạn đang nghĩ gì?" 
-                        className="cursor-pointer"
-                        readOnly
-                      />
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[600px]">
-                      <DialogHeader>
-                        <DialogTitle>Tạo bài viết mới</DialogTitle>
-                        <DialogDescription>
-                          Chia sẻ kiến thức, kinh nghiệm hoặc đặt câu hỏi cho cộng đồng
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="flex items-center gap-3 mb-4">
-                        <Avatar>
-                          <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=currentUser" />
-                          <AvatarFallback>U</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">Người dùng hiện tại</p>
-                          <p className="text-xs text-muted-foreground">Đăng công khai</p>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        <Input
-                          id="post-title"
-                          placeholder="Tiêu đề bài viết"
-                          value={newPostTitle}
-                          onChange={(e) => setNewPostTitle(e.target.value)}
-                        />
-                        <Textarea
-                          placeholder="Nội dung bài viết..."
-                          value={newPostContent}
-                          onChange={(e) => setNewPostContent(e.target.value)}
-                          className="min-h-[200px]"
-                        />
-                        <div className="flex items-center gap-2 border rounded-md p-2">
-                          <span className="text-sm font-medium">Thêm vào bài viết:</span>
-                          <Button variant="ghost" size="icon" className="text-blue-500">
-                            <Image className="h-5 w-5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="text-amber-500">
-                            <Smile className="h-5 w-5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="text-green-500">
-                            <Link className="h-5 w-5" />
-                          </Button>
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button 
-                          className="w-full mt-2" 
-                          onClick={handleCreatePost}
-                          disabled={!newPostTitle.trim() || !newPostContent.trim()}
-                        >
-                          Đăng bài
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </CardHeader>
-              <CardFooter className="border-t pt-3">
-                <div className="grid grid-cols-3 w-full gap-1">
-                  <Button variant="ghost" className="flex items-center gap-2">
-                    <Image className="h-4 w-4 text-blue-500" />
-                    <span>Hình ảnh</span>
-                  </Button>
-                  <Button variant="ghost" className="flex items-center gap-2">
-                    <Link className="h-4 w-4 text-green-500" />
-                    <span>Liên kết</span>
-                  </Button>
-                  <Button variant="ghost" className="flex items-center gap-2">
-                    <MessageCircle className="h-4 w-4 text-amber-500" />
-                    <span>Câu hỏi</span>
-                  </Button>
-                </div>
-              </CardFooter>
-            </Card>
-
-            {/* Search bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                type="text"
-                placeholder="Tìm kiếm bài viết..."
-                className="pl-10 rounded-full"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Blog posts */}
-            {filteredPosts.length > 0 ? (
-              <div className="space-y-6">
-                {filteredPosts.map((post) => (
-                  <Card key={post.post_id} className="overflow-hidden hover:shadow-md transition-shadow duration-300">
-                    <CardHeader>
-                      <div className="flex items-center gap-3 mb-2">
-                        <Avatar>
-                          <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${post.author}`} />
-                          <AvatarFallback>{post.author?.substring(0, 2).toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{post.author}</p>
-                          <div className="flex items-center text-xs text-muted-foreground gap-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>{new Date(post.created_at).toLocaleDateString('vi-VN')}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <CardTitle className="hover:text-primary transition-colors text-xl">
-                        <RouterLink to={`/blog/${post.post_id}`}>
-                          {post.title}
-                        </RouterLink>
-                      </CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {post.excerpt}
-                      </CardDescription>
-                    </CardHeader>
-                    
-                    <RouterLink to={`/blog/${post.post_id}`}>
-                      <div className="aspect-video relative overflow-hidden">
-                        <img 
-                          src={post.thumbnail} 
-                          alt={post.title} 
-                          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                        />
-                      </div>
-                    </RouterLink>
-                    
-                    <CardFooter className="flex flex-col space-y-3 pt-4">
-                      <div className="flex justify-between items-center w-full text-sm text-muted-foreground pb-3 border-b">
-                        <div className="flex items-center gap-1">
-                          <ThumbsUp className="h-3.5 w-3.5 text-primary" />
-                          <span>24 thích</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1">
-                            <MessageCircle className="h-3.5 w-3.5" />
-                            <span>{post.comments_count} bình luận</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Share2 className="h-3.5 w-3.5" />
-                            <span>5 chia sẻ</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-between w-full">
-                        <Button variant="ghost" className="flex-1 justify-center">
-                          <ThumbsUp className="h-4 w-4 mr-2" />
-                          Thích
-                        </Button>
-                        <Button variant="ghost" className="flex-1 justify-center" asChild>
-                          <RouterLink to={`/blog/${post.post_id}`}>
-                            <MessageCircle className="h-4 w-4 mr-2" />
-                            Bình luận
-                          </RouterLink>
-                        </Button>
-                        <Button variant="ghost" className="flex-1 justify-center">
-                          <Share2 className="h-4 w-4 mr-2" />
-                          Chia sẻ
-                        </Button>
-                      </div>
-                    </CardFooter>
-                  </Card>
-                ))}
+        
+        {/* Quick Post Section */}
+        <Card className="mb-10 mt-8">
+          <CardContent className="p-6">
+            <form onSubmit={handleQuickPost} className="space-y-4">
+              <div className="flex items-start gap-4">
+                <Avatar>
+                  <AvatarImage src="https://github.com/shadcn.png" />
+                  <AvatarFallback>CN</AvatarFallback>
+                </Avatar>
+                <Textarea 
+                  placeholder="Chia sẻ kiến thức của bạn..." 
+                  className="flex-1"
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  onClick={handleQuickPostClick}
+                />
               </div>
-            ) : (
-              <div className="text-center py-16">
-                <h3 className="text-xl font-medium mb-2">Không tìm thấy bài viết</h3>
-                <p className="text-muted-foreground mb-6">
-                  Vui lòng thử tìm kiếm với từ khóa khác
-                </p>
-                <Button onClick={() => setSearchTerm('')}>Xóa tìm kiếm</Button>
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Popular categories */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Chủ đề phổ biến</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  <Badge className="cursor-pointer bg-blue-100 text-blue-600 hover:bg-blue-200">Lập trình</Badge>
-                  <Badge className="cursor-pointer bg-green-100 text-green-600 hover:bg-green-200">Thiết kế</Badge>
-                  <Badge className="cursor-pointer bg-purple-100 text-purple-600 hover:bg-purple-200">Marketing</Badge>
-                  <Badge className="cursor-pointer bg-amber-100 text-amber-600 hover:bg-amber-200">Kinh doanh</Badge>
-                  <Badge className="cursor-pointer bg-red-100 text-red-600 hover:bg-red-200">Ngôn ngữ</Badge>
-                  <Badge className="cursor-pointer bg-teal-100 text-teal-600 hover:bg-teal-200">AI & ML</Badge>
-                  <Badge className="cursor-pointer bg-indigo-100 text-indigo-600 hover:bg-indigo-200">Web3</Badge>
-                  <Badge className="cursor-pointer bg-pink-100 text-pink-600 hover:bg-pink-200">UX/UI</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Top contributors */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Người đóng góp hàng đầu</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {['Trần Văn Nam', 'Nguyễn Thị Hương', 'Lê Minh Tuấn', 'Phạm Mai Anh', 'Đỗ Quang Huy'].map((name, index) => (
-                    <div key={index} className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`} />
-                        <AvatarFallback>{name.substring(0, 2)}</AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{name}</p>
-                        <p className="text-xs text-muted-foreground">{10 - index} bài viết trong tháng</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="ghost" className="w-full justify-center" asChild>
-                  <RouterLink to="/about">
-                    <PlusCircle className="h-4 w-4 mr-2" />
-                    Xem tất cả người đóng góp
-                  </RouterLink>
+              <div className="flex justify-between">
+                <Button type="button" variant="outline" onClick={openCreateDialog}>
+                  Tạo bài viết chi tiết
                 </Button>
-              </CardFooter>
-            </Card>
-
-            {/* Recent activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Hoạt động gần đây</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="bg-primary/10 p-2 rounded-full">
-                    <MessageCircle className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Nguyễn Văn A</span> đã bình luận về bài viết <span className="font-medium">"Học lập trình như thế nào hiệu quả?"</span></p>
-                    <p className="text-xs text-muted-foreground">2 giờ trước</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="bg-blue-100 p-2 rounded-full">
-                    <Plus className="h-4 w-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Trần Văn B</span> đã đăng bài viết mới <span className="font-medium">"10 thủ thuật CSS nâng cao"</span></p>
-                    <p className="text-xs text-muted-foreground">5 giờ trước</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="bg-red-100 p-2 rounded-full">
-                    <ThumbsUp className="h-4 w-4 text-red-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm"><span className="font-medium">Lê Thị C</span> đã thích bài viết <span className="font-medium">"Hướng dẫn sử dụng Git cho người mới bắt đầu"</span></p>
-                    <p className="text-xs text-muted-foreground">8 giờ trước</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                <Button type="submit" disabled={!postContent.trim()}>
+                  Đăng
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+        
+        {/* Blog Posts Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {posts.map((post) => (
+            <BlogPostCard key={post.post_id} post={post} />
+          ))}
         </div>
+        
+        {/* Create Post Dialog */}
+        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <DialogContent className="sm:max-w-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl">Tạo bài viết mới</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCreatePost} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="title">Tiêu đề</Label>
+                <Input 
+                  id="title" 
+                  value={newPost.title}
+                  onChange={(e) => setNewPost({...newPost, title: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="content">Nội dung</Label>
+                <Textarea 
+                  id="content" 
+                  className="min-h-32"
+                  value={newPost.content}
+                  onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="thumbnail">Link ảnh (không bắt buộc)</Label>
+                <Input 
+                  id="thumbnail" 
+                  placeholder="https://example.com/image.jpg"
+                  value={newPost.thumbnail}
+                  onChange={(e) => setNewPost({...newPost, thumbnail: e.target.value})}
+                />
+              </div>
+              <div className="flex justify-end">
+                <Button type="submit">Đăng bài viết</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </Layout>
   );

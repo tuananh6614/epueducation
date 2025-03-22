@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Course } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 interface CourseCardProps {
   course: Course;
@@ -11,9 +12,31 @@ interface CourseCardProps {
 
 const CourseCard = ({ course }: CourseCardProps) => {
   const [imageLoaded, setImageLoaded] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  const handleEnrollClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent the Link navigation
+    
+    // Check if user is logged in
+    const user = localStorage.getItem('user');
+    
+    if (!user) {
+      toast({
+        title: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để đăng ký khóa học này.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+    
+    // If logged in, navigate to course detail
+    navigate(`/courses/${course.course_id}`);
+  };
 
   return (
-    <Link to={`/courses/${course.course_id}`}>
+    <Link to={`/courses/${course.course_id}`} onClick={handleEnrollClick}>
       <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl h-full glass">
         <div className="relative aspect-video overflow-hidden">
           <div

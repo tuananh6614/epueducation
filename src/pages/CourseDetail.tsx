@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,9 +8,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { allCourses, featuredLessons } from '@/data/mockData';
-import { BookOpen, Clock, Award, PlayCircle, BarChart, CheckCircle, User, Globe } from 'lucide-react';
+import { BookOpen, Clock, PlayCircle, BarChart, CheckCircle, User, Globe } from 'lucide-react';
 import { Course } from '@/types';
 import NotFound from './NotFound';
+import { useToast } from '@/hooks/use-toast';
 
 // CourseCard component
 const CourseCard = ({ course }: { course: Course }) => {
@@ -52,6 +54,8 @@ const CourseCard = ({ course }: { course: Course }) => {
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const [activeTab, setActiveTab] = useState('overview');
+  const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Find the course by ID
   const course = allCourses.find((c) => c.course_id === Number(courseId));
@@ -66,7 +70,6 @@ const CourseDetail = () => {
     duration: course.duration || '36 giờ',
     level: 'Trung cấp',
     language: 'Tiếng Việt',
-    certificate: true,
     lastUpdated: '2 tháng trước',
     whatYouWillLearn: [
       'Xây dựng ứng dụng web hiện đại và có tính phản hồi',
@@ -129,6 +132,27 @@ const CourseDetail = () => {
     ]
   };
 
+  const handleEnrollClick = () => {
+    // Check if user is logged in
+    const user = localStorage.getItem('user');
+    
+    if (!user) {
+      toast({
+        title: "Yêu cầu đăng nhập",
+        description: "Vui lòng đăng nhập để đăng ký khóa học này.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+    
+    // If logged in, show success message
+    toast({
+      title: "Đăng ký thành công",
+      description: `Bạn đã đăng ký khóa học "${course.title}" thành công.`,
+    });
+  };
+
   return (
     <Layout>
       {/* Hero Section */}
@@ -171,7 +195,11 @@ const CourseDetail = () => {
                 </div>
               </div>
               
-              <Button size="lg" className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+              <Button 
+                size="lg" 
+                className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                onClick={handleEnrollClick}
+              >
                 Đăng ký học miễn phí
               </Button>
             </div>
@@ -262,10 +290,6 @@ const CourseDetail = () => {
                       <div className="flex items-center gap-3">
                         <Globe className="h-5 w-5 text-muted-foreground" />
                         <span>Truy cập trọn đời</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Award className="h-5 w-5 text-muted-foreground" />
-                        <span>Chứng chỉ hoàn thành</span>
                       </div>
                     </div>
                   </CardContent>
@@ -368,7 +392,11 @@ const CourseDetail = () => {
           <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
             Tham gia cùng hàng nghìn học viên đang học khóa học này và nâng cao kỹ năng của bạn ngay hôm nay.
           </p>
-          <Button size="lg" className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+          <Button 
+            size="lg" 
+            className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+            onClick={handleEnrollClick}
+          >
             Đăng ký học miễn phí
           </Button>
         </div>
