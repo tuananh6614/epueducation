@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS users (
   full_name VARCHAR(100),
   profile_picture VARCHAR(255),
   balance DECIMAL(10, 2) DEFAULT 0.00,
-  role ENUM('student', 'instructor', 'admin') DEFAULT 'student',
   bio TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
@@ -158,6 +157,6 @@ INSERT INTO categories (name, description) VALUES
 ('Kinh doanh', 'Các khóa học về kinh doanh và quản lý');
 
 -- Thêm dữ liệu mẫu cho Admin user
-INSERT INTO users (username, email, password, full_name, role, balance) VALUES
-('admin', 'admin@example.com', '$2a$10$JJrL01rGRrKsUo0aKhkK5O3zXdL5LI4rq/0n4ZX/NJpA3V.IQJTl.', 'Quản trị viên', 'admin', 1000000);
+INSERT INTO users (username, email, password, full_name, balance) VALUES
+('admin', 'admin@example.com', '$2a$10$JJrL01rGRrKsUo0aKhkK5O3zXdL5LI4rq/0n4ZX/NJpA3V.IQJTl.', 'Quản trị viên', 1000000);
 -- Mật khẩu: admin123
