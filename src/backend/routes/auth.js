@@ -72,9 +72,9 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
     
-    if (!email || !password) {
+    if (!username || !password) {
       return res.status(400).json({ 
         success: false, 
         message: 'Vui lòng điền đầy đủ thông tin' 
@@ -83,17 +83,17 @@ router.post('/login', async (req, res) => {
     
     const connection = await createConnection();
     
-    // Find user
+    // Find user by username instead of email
     const [users] = await connection.execute(
-      'SELECT * FROM users WHERE email = ?',
-      [email]
+      'SELECT * FROM users WHERE username = ?',
+      [username]
     );
     
     if (users.length === 0) {
       await connection.end();
       return res.status(400).json({ 
         success: false, 
-        message: 'Email hoặc mật khẩu không chính xác' 
+        message: 'Tên đăng nhập hoặc mật khẩu không chính xác' 
       });
     }
     
@@ -106,7 +106,7 @@ router.post('/login', async (req, res) => {
       await connection.end();
       return res.status(400).json({ 
         success: false, 
-        message: 'Email hoặc mật khẩu không chính xác' 
+        message: 'Tên đăng nhập hoặc mật khẩu không chính xác' 
       });
     }
     
@@ -128,6 +128,52 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Thêm router cho chức năng quên mật khẩu
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Vui lòng nhập địa chỉ email' 
+      });
+    }
+    
+    const connection = await createConnection();
+    
+    // Kiểm tra xem email có tồn tại trong hệ thống hay không
+    const [users] = await connection.execute(
+      'SELECT * FROM users WHERE email = ?',
+      [email]
+    );
+    
+    if (users.length === 0) {
+      await connection.end();
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Email không tồn tại trong hệ thống' 
+      });
+    }
+    
+    await connection.end();
+    
+    // Trong trường hợp thực tế, ở đây sẽ gửi email khôi phục mật khẩu
+    // Nhưng trong demo này, chúng ta chỉ trả về thông báo thành công
+    
+    res.json({
+      success: true,
+      message: 'Hướng dẫn khôi phục mật khẩu đã được gửi đến email của bạn'
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Lỗi máy chủ, vui lòng thử lại sau' 

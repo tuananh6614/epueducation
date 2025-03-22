@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import Layout from '../layout/Layout';
 
 const Login = () => {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -18,7 +18,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         title: "Lỗi",
         description: "Vui lòng điền đầy đủ thông tin",
@@ -35,7 +35,7 @@ const Login = () => {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ username, password })
       });
       
       const data = await response.json();
@@ -79,13 +79,12 @@ const Login = () => {
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="username">Tên đăng nhập</Label>
                 <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="example@example.com" 
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="username" 
+                  placeholder="tên đăng nhập" 
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   required
                 />
               </div>
