@@ -1,3 +1,4 @@
+
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
@@ -105,6 +106,16 @@ const DialogDescription = React.forwardRef<
   />
 ))
 DialogDescription.displayName = DialogPrimitive.Description.displayName
+
+// Add keyframes for the wave animation
+// This will be used in the LogoutConfirmation component
+document.head.appendChild(document.createElement('style')).textContent = `
+  @keyframes wave {
+    0% { transform: rotate(-5deg); }
+    50% { transform: rotate(5deg); }
+    100% { transform: rotate(-5deg); }
+  }
+`;
 
 export {
   Dialog,
