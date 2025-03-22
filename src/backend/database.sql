@@ -1,4 +1,3 @@
-
 -- Tạo cơ sở dữ liệu
 CREATE DATABASE IF NOT EXISTS learningplatform;
 USE learningplatform;
@@ -55,6 +54,40 @@ CREATE TABLE IF NOT EXISTS lessons (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
+);
+
+-- Tạo bảng Quizzes
+CREATE TABLE IF NOT EXISTS quizzes (
+  quiz_id INT AUTO_INCREMENT PRIMARY KEY,
+  course_id INT NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  time_limit INT,
+  passing_score INT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (course_id) REFERENCES courses(course_id) ON DELETE CASCADE
+);
+
+-- Tạo bảng Questions
+CREATE TABLE IF NOT EXISTS questions (
+  question_id INT AUTO_INCREMENT PRIMARY KEY,
+  quiz_id INT NOT NULL,
+  question_text TEXT NOT NULL,
+  question_type ENUM('multiple_choice', 'true_false', 'essay') NOT NULL,
+  points INT DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (quiz_id) REFERENCES quizzes(quiz_id) ON DELETE CASCADE
+);
+
+-- Tạo bảng Answers cho câu hỏi trắc nghiệm
+CREATE TABLE IF NOT EXISTS answers (
+  answer_id INT AUTO_INCREMENT PRIMARY KEY,
+  question_id INT NOT NULL,
+  answer_text TEXT NOT NULL,
+  is_correct BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (question_id) REFERENCES questions(question_id) ON DELETE CASCADE
 );
 
 -- Tạo bảng Resources

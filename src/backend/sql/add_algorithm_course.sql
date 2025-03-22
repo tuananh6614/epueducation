@@ -45,5 +45,26 @@ INSERT INTO lessons (course_id, title, content, video_url, duration, order_index
 (@course_id, 'Tối ưu hóa mã nguồn', 'Tìm hiểu cách tối ưu hóa mã nguồn để cải thiện hiệu suất và giảm độ phức tạp.', 'https://www.youtube.com/embed/sample7', 65, 7, FALSE),
 (@course_id, 'Dự án cuối khóa', 'Áp dụng tất cả kiến thức đã học để giải quyết một vấn đề phức tạp trong thế giới thực.', 'https://www.youtube.com/embed/sample8', 120, 8, FALSE);
 
+-- Thêm một số bài kiểm tra
+INSERT INTO quizzes (course_id, title, description) VALUES
+(@course_id, 'Kiểm tra giữa kỳ', 'Đánh giá kiến thức về độ phức tạp thuật toán và các thuật toán cơ bản'),
+(@course_id, 'Kiểm tra cuối kỳ', 'Đánh giá tổng hợp kiến thức về thuật toán và cấu trúc dữ liệu');
+
+-- Lấy ID của các bài kiểm tra vừa thêm
+SET @quiz_midterm = LAST_INSERT_ID();
+SET @quiz_final = @quiz_midterm + 1;
+
+-- Thêm câu hỏi cho bài kiểm tra giữa kỳ
+INSERT INTO questions (quiz_id, question_text, question_type) VALUES
+(@quiz_midterm, 'Độ phức tạp thời gian của thuật toán Quick Sort trong trường hợp tốt nhất là gì?', 'multiple_choice'),
+(@quiz_midterm, 'Thuật toán nào sau đây có độ phức tạp O(n²) trong trường hợp xấu nhất?', 'multiple_choice'),
+(@quiz_midterm, 'Viết pseudocode cho thuật toán tìm kiếm nhị phân', 'essay');
+
+-- Thêm câu hỏi cho bài kiểm tra cuối kỳ
+INSERT INTO questions (quiz_id, question_text, question_type) VALUES
+(@quiz_final, 'So sánh và đánh giá hiệu suất của các thuật toán sắp xếp đã học', 'essay'),
+(@quiz_final, 'Thuật toán nào thích hợp nhất cho việc tìm đường đi ngắn nhất trong đồ thị có trọng số?', 'multiple_choice'),
+(@quiz_final, 'Phân tích độ phức tạp của một thuật toán đệ quy', 'essay');
+
 -- Thông báo hoàn thành
 SELECT 'Đã thêm khóa học Thuật Toán và Thiết Kế Chương Trình thành công' AS message;

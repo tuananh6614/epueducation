@@ -76,6 +76,15 @@ router.get('/:id', async (req, res) => {
       [id]
     );
     
+    // For each quiz, get its questions
+    for (let i = 0; i < quizzes.length; i++) {
+      const [questions] = await connection.execute(
+        'SELECT * FROM questions WHERE quiz_id = ?',
+        [quizzes[i].quiz_id]
+      );
+      quizzes[i].questions = questions;
+    }
+    
     await connection.end();
     
     // Process course to include category as an array
