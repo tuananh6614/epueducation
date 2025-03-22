@@ -5,7 +5,7 @@ import { featuredResources } from '@/data/mockData';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode } from 'lucide-react';
-import { SectionHeading } from '@/components/ui/section-heading';
+import SectionHeading from '@/components/ui/section-heading';
 import { useAuthCheck } from '@/utils/authCheck';
 
 const getResourceIcon = (type: string) => {

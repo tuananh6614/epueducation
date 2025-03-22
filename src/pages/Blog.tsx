@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { featuredBlogPosts } from '@/data/mockData';
 import { formatDistanceToNow } from 'date-fns';
 import { BlogPost } from '@/types';
-import { SectionHeading } from '@/components/ui/section-heading';
+import SectionHeading from '@/components/ui/section-heading';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthCheck } from '@/utils/authCheck';
 
