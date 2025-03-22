@@ -10,7 +10,6 @@ import { Search, SlidersHorizontal, X, Loader2 } from 'lucide-react';
 import { Course } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import AddSampleCourse from '@/components/admin/AddSampleCourse';
-import AddCalculusCourse from '@/components/admin/AddCalculusCourse';
 
 const fetchCourses = async (): Promise<Course[]> => {
   const response = await fetch('http://localhost:5000/api/courses');
@@ -90,12 +89,6 @@ const Courses = () => {
             className="mb-0"
           />
           <div className="flex items-center gap-2 flex-wrap">
-            {isAdmin && (
-              <>
-                <AddSampleCourse />
-                <AddCalculusCourse />
-              </>
-            )}
             <Button onClick={handleRefreshCourses} variant="outline" size="sm">
               Làm mới danh sách
             </Button>
