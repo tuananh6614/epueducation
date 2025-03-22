@@ -332,13 +332,13 @@ const CourseDetail = () => {
                 <h2 className="text-2xl font-medium mb-6">Mô tả khóa học</h2>
                 <div className="prose max-w-none mb-8">
                   <p className="mb-4">
-                    Khóa học toàn diện này được thiết kế để đưa bạn vào hành trình khám phá các khái niệm cốt lõi và ứng dụng thực tế của {course.title}. Dù bạn là người mới bắt đầu muốn xây dựng nền tảng vững chắc hay chuyên gia có kinh nghiệm muốn trau dồi kỹ năng, khóa học này cung cấp những hiểu biết giá trị và trải nghiệm thực hành.
+                    Khóa học toàn diện này được thiết kế để đưa bạn vào hành trình khám phá các khái niệm cốt lõi và ứng dụng thực tế của {courseDetail.title}. Dù bạn là người mới bắt đầu muốn xây dựng nền tảng vững chắc hay chuyên gia có kinh nghiệm muốn trau dồi kỹ năng, khóa học này cung cấp những hiểu biết giá trị và trải nghiệm thực hành.
                   </p>
                   <p className="mb-4">
                     Trong suốt chương trình học, bạn sẽ làm việc trên các dự án thực tế giúp áp dụng các khái niệm đã học. Cách tiếp cận từng bước của chúng tôi đảm bảo rằng bạn không chỉ hiểu các khía cạnh lý thuyết mà còn có được kinh nghiệm thực tế có thể áp dụng trong hành trình chuyên môn của bạn.
                   </p>
                   <p>
-                    Khi kết thúc khóa học này, bạn sẽ phát triển được một bộ kỹ năng mạnh mẽ giúp bạn tự tin giải quyết các dự án và thách thức trong lĩnh vực này. Hãy tham gia cùng chúng tôi và thực hiện bước đầu tiên hướng tới việc làm chủ {course.title}.
+                    Khi kết thúc khóa học này, bạn sẽ phát triển được một bộ kỹ năng mạnh mẽ giúp bạn tự tin giải quyết các dự án và thách thức trong lĩnh vực này. Hãy tham gia cùng chúng tôi và thực hiện bước đầu tiên hướng tới việc làm chủ {courseDetail.title}.
                   </p>
                 </div>
               </div>
@@ -422,15 +422,15 @@ const CourseDetail = () => {
                 <div className="w-32 h-32 rounded-full overflow-hidden shrink-0">
                   <img 
                     src="https://images.unsplash.com/photo-1568602471122-7832951cc4c5?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=870&q=80"
-                    alt={course.instructorName}
+                    alt={courseDetail.instructorName}
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-medium mb-2">{course.instructorName}</h2>
+                  <h2 className="text-2xl font-medium mb-2">{courseDetail.instructorName}</h2>
                   <p className="text-primary mb-4">Giảng viên chuyên gia</p>
                   <p className="text-muted-foreground mb-6">
-                    Một nhà giáo dục nhiệt huyết với hơn 10 năm kinh nghiệm trong ngành, chuyên về {course.categories?.[0]}. Với nền tảng trong cả lý thuyết học thuật và ứng dụng thực tế, {course.instructorName?.split(' ')[0]} mang đến một góc nhìn độc đáo trong giảng dạy kết hợp kiến thức lý thuyết với những hiểu biết từ thực tế.
+                    Một nhà giáo dục nhiệt huyết với hơn 10 năm kinh nghiệm trong ngành, chuyên về {courseDetail.categories?.[0]}. Với nền tảng trong cả lý thuyết học thuật và ứng dụng thực tế, {courseDetail.instructorName?.split(' ')[0]} mang đến một góc nhìn độc đáo trong giảng dạy kết hợp kiến thức lý thuyết với những hiểu biết từ thực tế.
                   </p>
                   <Button variant="outline">Xem hồ sơ</Button>
                 </div>
