@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, CreditCard, ExternalLink } from 'lucide-react';
+import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, CreditCard, ExternalLink, QrCode, Copy } from 'lucide-react';
 import SectionHeading from '@/components/ui/section-heading';
 import { useAuthCheck } from '@/utils/authCheck';
 import { toast } from 'sonner';
@@ -285,6 +285,21 @@ const Resources = () => {
     }
   };
 
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success('Đã sao chép', {
+        description: 'Thông tin đã được sao chép vào clipboard'
+      });
+    }).catch(err => {
+      console.error('Không thể sao chép: ', err);
+    });
+  };
+
+  const getTransferContent = () => {
+    const username = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') || '{}').username : '';
+    return `NAPTIEN ${username}`;
+  };
+
   useEffect(() => {
     const checkPaymentStatus = async () => {
       const pendingPayment = localStorage.getItem('pendingPayment');
@@ -397,7 +412,7 @@ const Resources = () => {
       </div>
 
       <Dialog open={openDepositDialog} onOpenChange={setOpenDepositDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-[550px]">
           <DialogHeader>
             <DialogTitle>Nạp tiền vào tài khoản</DialogTitle>
             <DialogDescription>
@@ -495,18 +510,77 @@ const Resources = () => {
                     )}
                   />
                   
-                  <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
-                    <h4 className="font-medium text-yellow-800 mb-2">Thông tin chuyển khoản</h4>
-                    <p className="text-sm text-yellow-700 mb-2">Vui lòng chuyển khoản đến tài khoản:</p>
-                    <div className="space-y-1 text-sm">
-                      <p><span className="font-medium">Ngân hàng:</span> {bankInfo.bankName}</p>
-                      <p><span className="font-medium">Số tài khoản:</span> {bankInfo.accountNumber}</p>
-                      <p><span className="font-medium">Chủ tài khoản:</span> {bankInfo.accountName}</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
+                      <h4 className="font-medium text-yellow-800 mb-2">Thông tin chuyển khoản</h4>
+                      <p className="text-sm text-yellow-700 mb-2">Vui lòng chuyển khoản đến tài khoản:</p>
+                      <div className="space-y-1 text-sm">
+                        <p className="flex justify-between">
+                          <span className="font-medium">Ngân hàng:</span> 
+                          <span className="flex items-center">
+                            {bankInfo.bankName} 
+                            <Button 
+                              variant="ghost" 
+                              className="h-6 w-6 p-0 ml-1" 
+                              onClick={() => copyToClipboard(bankInfo.bankName)}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </span>
+                        </p>
+                        <p className="flex justify-between">
+                          <span className="font-medium">Số tài khoản:</span> 
+                          <span className="flex items-center">
+                            {bankInfo.accountNumber} 
+                            <Button 
+                              variant="ghost" 
+                              className="h-6 w-6 p-0 ml-1" 
+                              onClick={() => copyToClipboard(bankInfo.accountNumber)}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </span>
+                        </p>
+                        <p className="flex justify-between">
+                          <span className="font-medium">Chủ tài khoản:</span> 
+                          <span className="flex items-center">
+                            {bankInfo.accountName} 
+                            <Button 
+                              variant="ghost" 
+                              className="h-6 w-6 p-0 ml-1" 
+                              onClick={() => copyToClipboard(bankInfo.accountName)}
+                            >
+                              <Copy className="h-3 w-3" />
+                            </Button>
+                          </span>
+                        </p>
+                      </div>
+                      <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
+                      <div className="flex justify-between font-mono bg-white p-2 rounded border border-yellow-200 text-sm">
+                        {getTransferContent()}
+                        <Button 
+                          variant="ghost" 
+                          className="h-6 w-6 p-0 ml-1" 
+                          onClick={() => copyToClipboard(getTransferContent())}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
-                    <p className="font-mono bg-white p-2 rounded border border-yellow-200 text-sm">
-                      NAPTIEN {localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') || '{}').username : ''}
-                    </p>
+                    
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="bg-white p-4 rounded-md border border-gray-200 mb-3">
+                        <QrCode className="h-16 w-16 mx-auto mb-3 text-blue-600" />
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bank://${bankInfo.bankName}/${bankInfo.accountNumber}/${getTransferContent()}`} 
+                          alt="QR Code"
+                          className="w-32 h-32 mx-auto"
+                        />
+                      </div>
+                      <p className="text-xs text-center text-gray-500">
+                        Quét mã QR để chuyển khoản nhanh chóng
+                      </p>
+                    </div>
                   </div>
                   
                   <FormField
