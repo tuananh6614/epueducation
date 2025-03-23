@@ -206,7 +206,8 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       
       const userBalance = users[0].balance;
       
-      if (userBalance < resource.price) {
+      // Check if user has enough balance
+      if (parseFloat(userBalance) < parseFloat(resource.price)) {
         await connection.rollback();
         return res.status(400).json({
           success: false,
@@ -237,7 +238,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
         success: true,
         message: 'Mua tài liệu thành công',
         data: {
-          new_balance: userBalance - resource.price
+          new_balance: parseFloat(userBalance) - parseFloat(resource.price)
         }
       });
     } catch (error) {
