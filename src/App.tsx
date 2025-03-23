@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from '@/pages/Index';
@@ -10,14 +11,14 @@ import Blog from '@/pages/Blog';
 import BlogDetail from '@/pages/BlogDetail';
 import Resources from '@/pages/Resources';
 import Profile from '@/pages/Profile';
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
+import Login from '@/components/auth/Login';
+import Register from '@/components/auth/Register';
+import ForgotPassword from '@/components/auth/ForgotPassword';
 import NotFound from '@/pages/NotFound';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import { ThemeProvider } from "@/components/theme-provider"
 import { Toaster } from "@/components/ui/sonner"
-import { NotificationWrapper } from '@/components/NotificationWrapper';
+import { NotificationWrapper } from '@/components/notifications/NotificationWrapper';
 import AdminDeposits from '@/pages/AdminDeposits';
 import PaymentResult from '@/pages/PaymentResult';
 
