@@ -59,7 +59,8 @@ const ResourceList = ({ resources, purchases }: ResourceListProps) => {
       const url = window.URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
-      a.download = resource.filename || resource.title + '.pdf';
+      // Use filename if available, otherwise use title + default extension
+      a.download = resource.filename || `${resource.title || 'resource'}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

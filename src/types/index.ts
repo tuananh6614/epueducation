@@ -1,4 +1,3 @@
-
 export interface User {
   user_id: number;
   username: string;
@@ -47,7 +46,7 @@ export interface BlogPost {
   author?: string;
   author_fullname?: string;
   author_avatar?: string;
-  author_id?: number; // Add this property
+  author_id?: number;
   excerpt?: string;
   thumbnail?: string;
   comments_count?: number;
@@ -79,6 +78,8 @@ export interface Resource {
   file_url?: string;
   file_type?: string;
   download_count?: number;
+  filename?: string;
+  preview_link?: string;
 }
 
 export interface Purchase {
