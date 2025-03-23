@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -57,9 +58,9 @@ const Resources = () => {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [userBalance, setUserBalance] = useState<number>(0);
   const [bankInfo, setBankInfo] = useState({
-    bankName: 'Vietcombank',
-    accountNumber: '1234567890',
-    accountName: 'NGUYEN VAN A'
+    bankName: 'VietinBank',
+    accountNumber: '101874512384',
+    accountName: 'TRAN DINH DUNG'
   });
   const [isProcessingSepay, setIsProcessingSepay] = useState(false);
   const [depositTab, setDepositTab] = useState("manual");
@@ -420,7 +421,7 @@ const Resources = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <Tabs defaultValue="sepay" value={depositTab} onValueChange={setDepositTab}>
+          <Tabs defaultValue="manual" value={depositTab} onValueChange={setDepositTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="sepay">SePay (Tự động)</TabsTrigger>
               <TabsTrigger value="manual">Chuyển khoản thủ công</TabsTrigger>
@@ -515,9 +516,10 @@ const Resources = () => {
                       <h4 className="font-medium text-yellow-800 mb-2">Thông tin chuyển khoản</h4>
                       <p className="text-sm text-yellow-700 mb-2">Vui lòng chuyển khoản đến tài khoản:</p>
                       <div className="space-y-1 text-sm">
-                        <p className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span className="font-medium">Ngân hàng:</span> 
                           <span className="flex items-center">
+                            <img src="https://upload.wikimedia.org/wikipedia/vi/8/80/VietinBank_logo.svg" alt="VietinBank" className="h-4 mr-2" />
                             {bankInfo.bankName} 
                             <Button 
                               variant="ghost" 
@@ -527,11 +529,11 @@ const Resources = () => {
                               <Copy className="h-3 w-3" />
                             </Button>
                           </span>
-                        </p>
-                        <p className="flex justify-between">
+                        </div>
+                        <div className="flex justify-between">
                           <span className="font-medium">Số tài khoản:</span> 
                           <span className="flex items-center">
-                            {bankInfo.accountNumber} 
+                            <span className="text-blue-600 font-mono">{bankInfo.accountNumber}</span>
                             <Button 
                               variant="ghost" 
                               className="h-6 w-6 p-0 ml-1" 
@@ -540,11 +542,11 @@ const Resources = () => {
                               <Copy className="h-3 w-3" />
                             </Button>
                           </span>
-                        </p>
-                        <p className="flex justify-between">
+                        </div>
+                        <div className="flex justify-between">
                           <span className="font-medium">Chủ tài khoản:</span> 
                           <span className="flex items-center">
-                            {bankInfo.accountName} 
+                            <span className="text-blue-600 font-medium">{bankInfo.accountName}</span>
                             <Button 
                               variant="ghost" 
                               className="h-6 w-6 p-0 ml-1" 
@@ -553,7 +555,7 @@ const Resources = () => {
                               <Copy className="h-3 w-3" />
                             </Button>
                           </span>
-                        </p>
+                        </div>
                       </div>
                       <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
                       <div className="flex justify-between font-mono bg-white p-2 rounded border border-yellow-200 text-sm">
