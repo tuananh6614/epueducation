@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -62,25 +63,50 @@ const hasValidVideoUrl = (lesson: any): boolean => {
 
 const VideoPlayer = ({ videoUrl, title }: { videoUrl: string, title: string }) => {
   const [error, setError] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   
   useEffect(() => {
     setError(false);
+    setRetryCount(0);
   }, [videoUrl]);
   
   if (!videoUrl) {
     return <p className="text-center py-4">Video không khả dụng</p>;
   }
   
-  const isEmbed = 
-    videoUrl.includes('youtube.com/embed/') || 
-    videoUrl.includes('player.vimeo.com/') ||
-    videoUrl.includes('drive.google.com/file/d/') && videoUrl.includes('/preview');
+  // Handle Google Drive URLs
+  const isGoogleDrive = videoUrl.includes('drive.google.com');
   
+  // Handle YouTube URLs
+  const isYouTubeEmbed = videoUrl.includes('youtube.com/embed/');
+  
+  // Handle other embed formats
+  const isEmbed = 
+    isYouTubeEmbed || 
+    videoUrl.includes('player.vimeo.com/') ||
+    (isGoogleDrive && videoUrl.includes('/preview'));
+  
+  // Handle direct video formats
   const isDirectVideo = 
     videoUrl.endsWith('.mp4') || 
     videoUrl.endsWith('.webm') || 
     videoUrl.endsWith('.ogg') ||
     videoUrl.endsWith('.mov');
+  
+  const handleError = () => {
+    console.error("Video loading error:", videoUrl);
+    setError(true);
+    
+    // Try one more time with a different approach for YouTube URLs
+    if (videoUrl.includes('youtube.com') && !isYouTubeEmbed && retryCount === 0) {
+      setRetryCount(prevCount => prevCount + 1);
+      // Try to extract video ID
+      const match = videoUrl.match(/(?:v=|youtu\.be\/)([^&]+)/);
+      if (match && match[1]) {
+        window.open(`https://www.youtube.com/watch?v=${match[1]}`, '_blank');
+      }
+    }
+  };
   
   if (isEmbed) {
     return (
@@ -92,7 +118,7 @@ const VideoPlayer = ({ videoUrl, title }: { videoUrl: string, title: string }) =
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
-        onError={() => setError(true)}
+        onError={handleError}
       ></iframe>
     );
   } else if (isDirectVideo) {
@@ -103,26 +129,36 @@ const VideoPlayer = ({ videoUrl, title }: { videoUrl: string, title: string }) =
         controls 
         src={videoUrl}
         title={title}
-        onError={() => setError(true)}
+        onError={handleError}
       >
         Trình duyệt của bạn không hỗ trợ thẻ video.
       </video>
     );
   } else {
+    // For all other URLs, we'll try embedding but provide a fallback
     return (
       <>
         {error ? (
           <div className="flex flex-col items-center justify-center h-full p-4 text-center">
             <AlertCircle className="h-12 w-12 text-red-500 mb-2" />
             <p>Không thể tải video. URL không được hỗ trợ hoặc video không tồn tại.</p>
-            <a 
-              href={videoUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-primary underline mt-2"
-            >
-              Mở video trong tab mới
-            </a>
+            <div className="mt-4 flex flex-col gap-2">
+              <p>Vui lòng thử mở video trong tab mới:</p>
+              <Button 
+                variant="outline"
+                onClick={() => window.open(videoUrl, '_blank')}
+                className="mt-2"
+              >
+                Mở video trong tab mới
+              </Button>
+              
+              {/* For Google Drive links that didn't work with preview */}
+              {isGoogleDrive && !videoUrl.includes('/preview') && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Lưu ý: Với Google Drive, bạn có thể cần phải tải xuống video để xem.
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <iframe
@@ -133,7 +169,7 @@ const VideoPlayer = ({ videoUrl, title }: { videoUrl: string, title: string }) =
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
-            onError={() => setError(true)}
+            onError={handleError}
           ></iframe>
         )}
       </>

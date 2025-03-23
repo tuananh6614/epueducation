@@ -9,18 +9,38 @@ const router = express.Router();
 const formatVideoUrl = (url) => {
   if (!url) return null;
 
-  // Check if it's a YouTube URL
+  // YouTube formats
+  // Handle standard YouTube URLs
   const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
   const youtubeMatch = url.match(youtubeRegex);
   
   if (youtubeMatch && youtubeMatch[1]) {
-    // Return the embed URL format for YouTube
     return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+  }
+  
+  // Handle youtu.be format (YouTube shortlinks)
+  const youtubeShortRegex = /youtu\.be\/([^?&/]+)/;
+  const youtubeShortMatch = url.match(youtubeShortRegex);
+  
+  if (youtubeShortMatch && youtubeShortMatch[1]) {
+    return `https://www.youtube.com/embed/${youtubeShortMatch[1]}`;
   }
   
   // Check if it's already an embed URL
   if (url.includes('/embed/')) {
     return url;
+  }
+  
+  // Check if it's a Google Drive URL with /view or /preview
+  if (url.includes('drive.google.com/file/d/')) {
+    // Extract the file ID
+    const driveIdRegex = /\/d\/([^\/\?]+)/;
+    const driveMatch = url.match(driveIdRegex);
+    
+    if (driveMatch && driveMatch[1]) {
+      const fileId = driveMatch[1];
+      return `https://drive.google.com/file/d/${fileId}/preview`;
+    }
   }
   
   // Check if it's a Vimeo URL
@@ -29,15 +49,6 @@ const formatVideoUrl = (url) => {
   
   if (vimeoMatch && vimeoMatch[1]) {
     return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
-  }
-  
-  // Check if it's a Google Drive URL
-  if (url.includes('drive.google.com/file/d/')) {
-    // Extract the file ID
-    const fileIdMatch = url.match(/\/d\/([^\/]+)/);
-    if (fileIdMatch && fileIdMatch[1]) {
-      return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
-    }
   }
   
   // Check if it's a Google Drive folder URL
