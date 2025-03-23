@@ -164,6 +164,8 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
     const resourceId = req.params.id;
     const userId = req.user.id;
     
+    console.log(`Processing purchase for resource ${resourceId} by user ${userId}`);
+    
     const connection = await createConnection();
     
     // Start transaction
@@ -178,6 +180,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       
       if (existingPurchases.length > 0) {
         await connection.rollback();
+        console.log('User already purchased this resource');
         return res.status(400).json({
           success: false,
           message: 'Bạn đã mua tài liệu này trước đó'
@@ -191,6 +194,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       
       if (resources.length === 0) {
         await connection.rollback();
+        console.log('Resource not found');
         return res.status(404).json({
           success: false,
           message: 'Không tìm thấy tài liệu'
@@ -198,6 +202,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       }
       
       const resource = resources[0];
+      console.log(`Resource found: ${resource.title}, price: ${resource.price}`);
       
       // Get user balance
       const [users] = await connection.execute(`
@@ -205,10 +210,12 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       `, [userId]);
       
       const userBalance = users[0].balance;
+      console.log(`User balance: ${userBalance}`);
       
       // Check if user has enough balance
       if (parseFloat(userBalance) < parseFloat(resource.price)) {
         await connection.rollback();
+        console.log('Insufficient balance');
         return res.status(400).json({
           success: false,
           message: 'Số dư không đủ để mua tài liệu này'
@@ -216,9 +223,12 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       }
       
       // Update user balance
+      const newBalance = parseFloat(userBalance) - parseFloat(resource.price);
       await connection.execute(`
-        UPDATE users SET balance = balance - ? WHERE user_id = ?
-      `, [resource.price, userId]);
+        UPDATE users SET balance = ? WHERE user_id = ?
+      `, [newBalance, userId]);
+      
+      console.log(`Updated user balance to: ${newBalance}`);
       
       // Record purchase
       await connection.execute(`
@@ -226,22 +236,36 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
         VALUES (?, ?, ?)
       `, [userId, resourceId, resource.price]);
       
+      console.log('Recorded purchase');
+      
       // Record transaction
       await connection.execute(`
         INSERT INTO transactions (user_id, amount, transaction_type, status, related_id)
         VALUES (?, ?, ?, ?, ?)
       `, [userId, resource.price, 'resource_purchase', 'completed', resourceId]);
       
+      console.log('Recorded transaction');
+      
+      // Create notification for user
+      await connection.execute(`
+        INSERT INTO notifications (user_id, type, message, is_read)
+        VALUES (?, ?, ?, ?)
+      `, [userId, 'system', `Bạn đã mua thành công tài liệu "${resource.title}"`, false]);
+      
+      console.log('Created notification');
+      
       await connection.commit();
+      console.log('Transaction committed successfully');
       
       res.json({
         success: true,
         message: 'Mua tài liệu thành công',
         data: {
-          new_balance: parseFloat(userBalance) - parseFloat(resource.price)
+          new_balance: newBalance
         }
       });
     } catch (error) {
+      console.error('Error in purchase transaction:', error);
       await connection.rollback();
       throw error;
     } finally {

@@ -867,10 +867,10 @@ const Resources = () => {
             <DialogTitle>Xác nhận mua tài liệu</DialogTitle>
             <DialogDescription>
               {selectedResource && (
-                <div className="mt-2">
+                <>
                   <p className="font-medium text-foreground">{selectedResource.title}</p>
                   <p className="mt-1 text-muted-foreground">{selectedResource.description}</p>
-                </div>
+                </>
               )}
             </DialogDescription>
           </DialogHeader>
