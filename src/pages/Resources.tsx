@@ -751,3 +751,105 @@ const Resources = () => {
                           <FormControl>
                             <Input 
                               placeholder="Nhập số tiền cần nạp"
+                              {...field}
+                              className="text-lg"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6"
+                      disabled={isProcessingSepay}
+                    >
+                      {isProcessingSepay ? 'Đang xử lý...' : 'Thanh toán qua thẻ ATM'}
+                    </Button>
+                  </form>
+                </Form>
+              </div>
+            )}
+            
+            {depositTab === 'phone' && (
+              <div className="mt-6 text-center">
+                <h3 className="text-lg font-medium mb-4">Nạp tiền qua thẻ điện thoại</h3>
+                <p className="text-sm text-gray-600 mb-6">Tính năng này đang được phát triển</p>
+                <Button 
+                  className="w-full bg-gray-500 hover:bg-gray-600 text-lg py-6"
+                  disabled
+                >
+                  Đang phát triển
+                </Button>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openPurchaseDialog} onOpenChange={setOpenPurchaseDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Xác nhận mua tài liệu</DialogTitle>
+            <DialogDescription>
+              Vui lòng xác nhận thông tin mua tài liệu
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedResource && (
+            <div className="py-4">
+              <div className="flex items-start gap-4">
+                <div className="bg-gray-100 p-2 rounded">
+                  {getResourceIcon(selectedResource.resource_type || 'PDF')}
+                </div>
+                <div>
+                  <h3 className="font-medium">{selectedResource.title}</h3>
+                  <p className="text-sm text-muted-foreground">{selectedResource.description}</p>
+                </div>
+              </div>
+              
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground">Giá</span>
+                  <span className="font-medium">{selectedResource.price?.toLocaleString('vi-VN')}đ</span>
+                </div>
+                <div className="flex justify-between py-2 border-b">
+                  <span className="text-muted-foreground">Số dư của bạn</span>
+                  <span className="font-medium">{userBalance.toLocaleString('vi-VN')}đ</span>
+                </div>
+                <div className="flex justify-between py-2">
+                  <span className="text-muted-foreground">Số dư còn lại</span>
+                  <span className="font-medium">
+                    {(userBalance - (selectedResource.price || 0)).toLocaleString('vi-VN')}đ
+                  </span>
+                </div>
+              </div>
+              
+              {userBalance < (selectedResource.price || 0) && (
+                <div className="mt-4 p-3 bg-red-50 text-red-800 rounded-md">
+                  <p className="text-sm">Số dư của bạn không đủ để mua tài liệu này.</p>
+                  <p className="text-sm">Vui lòng nạp thêm tiền để tiếp tục.</p>
+                </div>
+              )}
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenPurchaseDialog(false)}>
+              Hủy
+            </Button>
+            <Button 
+              onClick={handlePurchase}
+              disabled={!selectedResource || userBalance < (selectedResource.price || 0) || isLoading}
+            >
+              {isLoading ? 'Đang xử lý...' : 'Xác nhận mua'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Layout>
+  );
+};
+
+export default Resources;
