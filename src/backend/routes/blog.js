@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { createConnection } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
