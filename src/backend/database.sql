@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS likes (
   user_id INT NOT NULL,
   post_id INT,
   comment_id INT,
+  reaction VARCHAR(50) DEFAULT 'like',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
   FOREIGN KEY (post_id) REFERENCES blog_posts(post_id) ON DELETE CASCADE,
