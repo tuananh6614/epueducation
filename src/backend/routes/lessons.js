@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { createConnection } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
@@ -8,58 +7,52 @@ const router = express.Router();
 // Function to format video URLs for embedding
 const formatVideoUrl = (url) => {
   if (!url) return null;
-
+  
+  // Clean the URL in case multiple URLs are pasted together
+  const cleanUrl = url.split('https://')[1] ? 'https://' + url.split('https://')[1] : url;
+  
   // YouTube formats
   // Handle standard YouTube URLs
   const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-  const youtubeMatch = url.match(youtubeRegex);
+  const youtubeMatch = cleanUrl.match(youtubeRegex);
   
   if (youtubeMatch && youtubeMatch[1]) {
     return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
   }
   
   // Handle youtu.be format (YouTube shortlinks)
-  const youtubeShortRegex = /youtu\.be\/([^?&/]+)/;
-  const youtubeShortMatch = url.match(youtubeShortRegex);
-  
-  if (youtubeShortMatch && youtubeShortMatch[1]) {
-    return `https://www.youtube.com/embed/${youtubeShortMatch[1]}`;
+  if (cleanUrl.includes('youtu.be')) {
+    const videoId = cleanUrl.split('youtu.be/')[1].split('?')[0].split('&')[0];
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
   }
   
   // Check if it's already an embed URL
-  if (url.includes('/embed/')) {
-    return url;
+  if (cleanUrl.includes('/embed/')) {
+    return cleanUrl;
   }
   
-  // Check if it's a Google Drive URL with /view or /preview
-  if (url.includes('drive.google.com/file/d/')) {
+  // Google Drive format: Proper embedding for Google Drive files
+  if (cleanUrl.includes('drive.google.com/file/d/')) {
     // Extract the file ID
-    const driveIdRegex = /\/d\/([^\/\?]+)/;
-    const driveMatch = url.match(driveIdRegex);
-    
-    if (driveMatch && driveMatch[1]) {
-      const fileId = driveMatch[1];
+    const driveIdMatch = cleanUrl.match(/\/d\/([^\/\?]+)/);
+    if (driveIdMatch && driveIdMatch[1]) {
+      const fileId = driveIdMatch[1];
       return `https://drive.google.com/file/d/${fileId}/preview`;
     }
   }
   
   // Check if it's a Vimeo URL
   const vimeoRegex = /vimeo\.com\/(?:video\/)?(\d+)/;
-  const vimeoMatch = url.match(vimeoRegex);
+  const vimeoMatch = cleanUrl.match(vimeoRegex);
   
   if (vimeoMatch && vimeoMatch[1]) {
     return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
   }
   
-  // Check if it's a Google Drive folder URL
-  if (url.includes('drive.google.com/drive/folders/')) {
-    // For folders, we can't directly embed, so return null
-    return null;
-  }
-  
   // For other video URLs, just return as is
-  // This will handle direct video links, other embed codes, etc.
-  return url;
+  return cleanUrl;
 };
 
 // Get a specific lesson

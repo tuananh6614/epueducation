@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, BookOpen, Video, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Video, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthCheck } from '@/utils/authCheck';
 import { Lesson } from '@/types';
@@ -63,118 +62,117 @@ const hasValidVideoUrl = (lesson: any): boolean => {
 
 const VideoPlayer = ({ videoUrl, title }: { videoUrl: string, title: string }) => {
   const [error, setError] = useState(false);
-  const [retryCount, setRetryCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   
   useEffect(() => {
     setError(false);
-    setRetryCount(0);
+    setLoading(true);
+    console.log("Video URL:", videoUrl);
   }, [videoUrl]);
   
   if (!videoUrl) {
     return <p className="text-center py-4">Video không khả dụng</p>;
   }
   
-  // Handle Google Drive URLs
+  const isYouTube = videoUrl.includes('youtube.com/embed/') || videoUrl.includes('youtu.be');
   const isGoogleDrive = videoUrl.includes('drive.google.com');
-  
-  // Handle YouTube URLs
-  const isYouTubeEmbed = videoUrl.includes('youtube.com/embed/');
-  
-  // Handle other embed formats
-  const isEmbed = 
-    isYouTubeEmbed || 
-    videoUrl.includes('player.vimeo.com/') ||
-    (isGoogleDrive && videoUrl.includes('/preview'));
-  
-  // Handle direct video formats
+  const isVimeo = videoUrl.includes('vimeo.com');
   const isDirectVideo = 
     videoUrl.endsWith('.mp4') || 
     videoUrl.endsWith('.webm') || 
     videoUrl.endsWith('.ogg') ||
     videoUrl.endsWith('.mov');
   
+  const handleIframeLoad = () => {
+    setLoading(false);
+  };
+  
   const handleError = () => {
     console.error("Video loading error:", videoUrl);
     setError(true);
+    setLoading(false);
     
-    // Try one more time with a different approach for YouTube URLs
-    if (videoUrl.includes('youtube.com') && !isYouTubeEmbed && retryCount === 0) {
-      setRetryCount(prevCount => prevCount + 1);
-      // Try to extract video ID
-      const match = videoUrl.match(/(?:v=|youtu\.be\/)([^&]+)/);
-      if (match && match[1]) {
-        window.open(`https://www.youtube.com/watch?v=${match[1]}`, '_blank');
-      }
-    }
+    toast({
+      title: "Lỗi tải video",
+      description: "Không thể tải video từ URL được cung cấp. Hãy thử mở video trong tab mới.",
+      variant: "destructive",
+    });
   };
   
-  if (isEmbed) {
-    return (
-      <iframe
-        width="100%"
-        height="100%"
-        src={videoUrl}
-        title={title}
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-        onError={handleError}
-      ></iframe>
-    );
-  } else if (isDirectVideo) {
-    return (
-      <video 
-        width="100%" 
-        height="100%" 
-        controls 
-        src={videoUrl}
-        title={title}
-        onError={handleError}
-      >
-        Trình duyệt của bạn không hỗ trợ thẻ video.
-      </video>
-    );
-  } else {
-    // For all other URLs, we'll try embedding but provide a fallback
-    return (
-      <>
-        {error ? (
-          <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-            <AlertCircle className="h-12 w-12 text-red-500 mb-2" />
-            <p>Không thể tải video. URL không được hỗ trợ hoặc video không tồn tại.</p>
-            <div className="mt-4 flex flex-col gap-2">
-              <p>Vui lòng thử mở video trong tab mới:</p>
-              <Button 
-                variant="outline"
-                onClick={() => window.open(videoUrl, '_blank')}
-                className="mt-2"
-              >
-                Mở video trong tab mới
-              </Button>
-              
-              {/* For Google Drive links that didn't work with preview */}
-              {isGoogleDrive && !videoUrl.includes('/preview') && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Lưu ý: Với Google Drive, bạn có thể cần phải tải xuống video để xem.
-                </p>
-              )}
-            </div>
-          </div>
-        ) : (
-          <iframe
-            width="100%"
-            height="100%"
-            src={videoUrl}
-            title={title}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            onError={handleError}
-          ></iframe>
-        )}
-      </>
-    );
+  let iframeProps = {};
+  
+  if (isYouTube) {
+    iframeProps = {
+      allow: "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share",
+      allowFullScreen: true
+    };
+  } else if (isGoogleDrive) {
+    iframeProps = {
+      allow: "autoplay",
+      allowFullScreen: true
+    };
   }
+  
+  return (
+    <div className="relative w-full h-full">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      )}
+      
+      {error ? (
+        <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+          <AlertCircle className="h-12 w-12 text-red-500 mb-2" />
+          <p className="mb-4">Không thể hiển thị video. Hãy thử mở trong tab mới.</p>
+          <div className="flex flex-col gap-2">
+            <Button 
+              variant="outline"
+              onClick={() => window.open(videoUrl, '_blank')}
+              className="flex items-center gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              Mở video trong tab mới
+            </Button>
+            
+            <p className="text-xs text-muted-foreground mt-2 break-all">
+              URL: {videoUrl}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {isDirectVideo ? (
+            <video 
+              width="100%" 
+              height="100%" 
+              controls 
+              src={videoUrl}
+              title={title}
+              onError={handleError}
+              onLoadedData={() => setLoading(false)}
+              className="w-full h-full"
+            >
+              Trình duyệt của bạn không hỗ trợ thẻ video.
+            </video>
+          ) : (
+            <iframe
+              width="100%"
+              height="100%"
+              src={videoUrl}
+              title={title}
+              frameBorder="0"
+              onLoad={handleIframeLoad}
+              onError={handleError}
+              {...iframeProps}
+              className="w-full h-full"
+            ></iframe>
+          )}
+        </>
+      )}
+    </div>
+  );
 };
 
 const LessonView = () => {
@@ -317,9 +315,13 @@ const LessonView = () => {
               
               {hasVideo && (
                 <TabsContent value="video" className="animate-fade-in">
-                  <div className="aspect-video rounded-lg overflow-hidden bg-black">
-                    <VideoPlayer videoUrl={videoUrl} title={lesson.title} />
-                  </div>
+                  <Card>
+                    <CardContent className="p-0 overflow-hidden">
+                      <div className="aspect-video bg-black">
+                        <VideoPlayer videoUrl={videoUrl} title={lesson.title} />
+                      </div>
+                    </CardContent>
+                  </Card>
                 </TabsContent>
               )}
             </Tabs>
