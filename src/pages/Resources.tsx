@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -8,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, CreditCard, ExternalLink, QrCode, Copy } from 'lucide-react';
+import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, CreditCard, ExternalLink, QrCode, Copy, Smartphone, CreditCard as CreditCardIcon } from 'lucide-react';
 import SectionHeading from '@/components/ui/section-heading';
 import { useAuthCheck } from '@/utils/authCheck';
 import { toast } from 'sonner';
@@ -44,7 +44,8 @@ const depositSchema = z.object({
 const sepaySchema = z.object({
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Số tiền phải lớn hơn 0'
-  })
+  }),
+  phone: z.string().optional()
 });
 
 type SepayFormValues = z.infer<typeof sepaySchema>;
@@ -63,7 +64,8 @@ const Resources = () => {
     accountName: 'TRAN DINH DUNG'
   });
   const [isProcessingSepay, setIsProcessingSepay] = useState(false);
-  const [depositTab, setDepositTab] = useState("manual");
+  const [depositTab, setDepositTab] = useState("bank");
+  const [selectedPaymentAmount, setSelectedPaymentAmount] = useState("150000");
   
   const navigate = useNavigate();
   const checkAuth = useAuthCheck();
@@ -82,7 +84,8 @@ const Resources = () => {
   const sepayForm = useForm<SepayFormValues>({
     resolver: zodResolver(sepaySchema),
     defaultValues: {
-      amount: ''
+      amount: '150000',
+      phone: ''
     }
   });
 
@@ -286,7 +289,7 @@ const Resources = () => {
     }
   };
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast.success('Đã sao chép', {
         description: 'Thông tin đã được sao chép vào clipboard'
@@ -342,6 +345,19 @@ const Resources = () => {
     
     checkPaymentStatus();
   }, []);
+
+  const handleAmountSelect = (amount: string) => {
+    setSelectedPaymentAmount(amount);
+    sepayForm.setValue('amount', amount);
+  };
+
+  const paymentAmounts = [
+    { value: "50000", label: "50.000đ" },
+    { value: "100000", label: "100.000đ" },
+    { value: "150000", label: "150.000đ" },
+    { value: "200000", label: "200.000đ" },
+    { value: "500000", label: "500.000đ" }
+  ];
 
   return (
     <Layout>
@@ -413,64 +429,355 @@ const Resources = () => {
       </div>
 
       <Dialog open={openDepositDialog} onOpenChange={setOpenDepositDialog}>
-        <DialogContent className="sm:max-w-[550px]">
-          <DialogHeader>
-            <DialogTitle>Nạp tiền vào tài khoản</DialogTitle>
-            <DialogDescription>
-              Nạp tiền để mua tài liệu và khóa học
-            </DialogDescription>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="text-xl font-bold">Nạp tiền vào tài khoản</DialogTitle>
           </DialogHeader>
           
-          <Tabs defaultValue="manual" value={depositTab} onValueChange={setDepositTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="sepay">SePay (Tự động)</TabsTrigger>
-              <TabsTrigger value="manual">Chuyển khoản thủ công</TabsTrigger>
-            </TabsList>
+          <div className="mt-4">
+            <div className="grid grid-cols-5 gap-2">
+              <div 
+                className={`relative flex flex-col items-center justify-center p-4 rounded-md cursor-pointer border transition-all ${depositTab === 'bank' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-500'}`}
+                onClick={() => setDepositTab('bank')}
+              >
+                {depositTab === 'bank' && <div className="absolute top-0 left-0 bg-emerald-500 text-white px-2 py-0.5 text-[10px] rounded-br-md">HOT</div>}
+                <CreditCard className="h-10 w-10 text-emerald-500 mb-2" />
+                <span className="text-xs text-center">Chuyển khoản</span>
+              </div>
+              
+              <div 
+                className={`flex flex-col items-center justify-center p-4 rounded-md cursor-pointer border transition-all ${depositTab === 'qr' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-500'}`}
+                onClick={() => setDepositTab('qr')}
+              >
+                <QrCode className="h-10 w-10 text-emerald-500 mb-2" />
+                <span className="text-xs text-center">QR Code</span>
+              </div>
+              
+              <div 
+                className={`flex flex-col items-center justify-center p-4 rounded-md cursor-pointer border transition-all ${depositTab === 'momo' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-500'}`}
+                onClick={() => setDepositTab('momo')}
+              >
+                <img src="/lovable-uploads/b97148b3-3f98-4ed3-a28d-e2764daa882c.png" alt="Momo" className="h-10 w-10 mb-2" />
+                <span className="text-xs text-center">Ví Momo</span>
+              </div>
+              
+              <div 
+                className={`flex flex-col items-center justify-center p-4 rounded-md cursor-pointer border transition-all ${depositTab === 'atm' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-500'}`}
+                onClick={() => setDepositTab('atm')}
+              >
+                <CreditCardIcon className="h-10 w-10 text-emerald-500 mb-2" />
+                <span className="text-xs text-center">Thẻ ATM</span>
+              </div>
+              
+              <div 
+                className={`flex flex-col items-center justify-center p-4 rounded-md cursor-pointer border transition-all ${depositTab === 'phone' ? 'border-emerald-500 bg-emerald-50' : 'border-gray-200 hover:border-emerald-500'}`}
+                onClick={() => setDepositTab('phone')}
+              >
+                <Smartphone className="h-10 w-10 text-emerald-500 mb-2" />
+                <span className="text-xs text-center">Thẻ điện thoại</span>
+              </div>
+            </div>
             
-            <TabsContent value="sepay" className="space-y-4 pt-4">
-              <Form {...sepayForm}>
-                <form onSubmit={sepayForm.handleSubmit(handleSepayDeposit)} className="space-y-6">
-                  <FormField
-                    control={sepayForm.control}
-                    name="amount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Số tiền (VNĐ)</FormLabel>
-                        <FormControl>
-                          <input 
-                            type="number" 
-                            placeholder="Nhập số tiền cần nạp" 
-                            {...field} 
-                            min="10000" 
-                            step="10000"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-                    <h4 className="font-medium text-blue-800 mb-2">Thanh toán qua SePay</h4>
-                    <p className="text-sm text-blue-700 mb-2">
-                      Hệ thống sẽ chuyển bạn đến cổng thanh toán SePay để hoàn tất giao dịch. 
-                      Sau khi thanh toán xong, số dư sẽ được cập nhật tự động.
-                    </p>
-                    <p className="text-sm font-medium text-blue-700">
-                      Các phương thức thanh toán được hỗ trợ: Thẻ ATM, Thẻ tín dụng, Ví điện tử
-                    </p>
+            {depositTab === 'bank' && (
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-4">Chuyển tiền bằng tài khoản ngân hàng</h3>
+                
+                <div className="mb-4">
+                  <div className="grid grid-cols-5 gap-2 mb-3">
+                    {paymentAmounts.map(amount => (
+                      <button
+                        key={amount.value}
+                        type="button"
+                        className={`py-2 px-3 border rounded-md text-center transition-all ${
+                          selectedPaymentAmount === amount.value 
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                            : 'border-gray-200 hover:border-emerald-500'
+                        }`}
+                        onClick={() => handleAmountSelect(amount.value)}
+                      >
+                        {amount.label}
+                      </button>
+                    ))}
                   </div>
                   
-                  <DialogFooter className="gap-2 sm:gap-0">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setOpenDepositDialog(false)}
+                  <Input
+                    type="text"
+                    value={sepayForm.watch('amount')}
+                    onChange={(e) => sepayForm.setValue('amount', e.target.value)}
+                    className="text-lg"
+                    placeholder="Nhập số tiền khác"
+                  />
+                </div>
+                
+                <div className="bg-gray-50 p-5 rounded-md border border-gray-200 mb-4">
+                  <div className="text-lg font-medium text-emerald-700 mb-2">
+                    Sử dụng <span className="text-emerald-500 font-bold">CHUYỂN TIỀN NHANH 24/7</span> của các ngân hàng
+                  </div>
+                  
+                  <div className="mb-4">
+                    <div className="font-medium mb-1">Hướng dẫn quét mã QR:</div>
+                    <div className="flex gap-2 items-center">
+                      <span className="text-emerald-600 hover:underline cursor-pointer">AGRIBANK</span> |
+                      <span className="text-emerald-600 hover:underline cursor-pointer">VIETINBANK</span> |
+                      <span className="text-emerald-600 hover:underline cursor-pointer">VIETCOMBANK</span> |
+                      <span className="text-emerald-600 hover:underline cursor-pointer">BIDV</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="font-medium mb-1">Hoặc sử dụng quét QR của các ví điện tử:</div>
+                    <div className="flex gap-3">
+                      <img src="https://cdn.zalopay.vn/logo/zalopay-logo.png" alt="ZaloPay" className="h-8" />
+                      <img src="/lovable-uploads/b97148b3-3f98-4ed3-a28d-e2764daa882c.png" alt="Momo" className="h-8" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
+                    <h4 className="font-medium text-yellow-800 mb-2">Thông tin chuyển khoản</h4>
+                    <p className="text-sm text-yellow-700 mb-2">Vui lòng chuyển khoản đến tài khoản:</p>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">Ngân hàng:</span> 
+                        <span className="flex items-center">
+                          <img src="https://upload.wikimedia.org/wikipedia/vi/8/80/VietinBank_logo.svg" alt="VietinBank" className="h-4 mr-2" />
+                          {bankInfo.bankName} 
+                          <Button 
+                            variant="ghost" 
+                            className="h-6 w-6 p-0 ml-1" 
+                            onClick={() => copyToClipboard(bankInfo.bankName)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Số tài khoản:</span> 
+                        <span className="flex items-center">
+                          <span className="text-blue-600 font-mono">{bankInfo.accountNumber}</span>
+                          <Button 
+                            variant="ghost" 
+                            className="h-6 w-6 p-0 ml-1" 
+                            onClick={() => copyToClipboard(bankInfo.accountNumber)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="font-medium">Chủ tài khoản:</span> 
+                        <span className="flex items-center">
+                          <span className="text-blue-600 font-medium">{bankInfo.accountName}</span>
+                          <Button 
+                            variant="ghost" 
+                            className="h-6 w-6 p-0 ml-1" 
+                            onClick={() => copyToClipboard(bankInfo.accountName)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
+                    <div className="flex justify-between font-mono bg-white p-2 rounded border border-yellow-200 text-sm">
+                      {getTransferContent()}
+                      <Button 
+                        variant="ghost" 
+                        className="h-6 w-6 p-0 ml-1" 
+                        onClick={() => copyToClipboard(getTransferContent())}
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="bg-white p-4 rounded-md border border-gray-200 mb-3">
+                      <QrCode className="h-12 w-12 mx-auto mb-3 text-emerald-600" />
+                      <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bank://${bankInfo.bankName}/${bankInfo.accountNumber}/${getTransferContent()}`} 
+                        alt="QR Code"
+                        className="w-32 h-32 mx-auto"
+                      />
+                    </div>
+                    <p className="text-xs text-center text-gray-500">
+                      Quét mã QR để chuyển khoản nhanh chóng
+                    </p>
+                  </div>
+                </div>
+                
+                <Button 
+                  className="w-full mt-6 bg-emerald-500 hover:bg-emerald-600 text-lg py-6"
+                  onClick={() => {
+                    toast.info('Vui lòng chuyển khoản và xác nhận với admin', {
+                      description: 'Sau khi chuyển khoản, vui lòng liên hệ admin để xác nhận giao dịch'
+                    });
+                    setOpenDepositDialog(false);
+                  }}
+                >
+                  Nạp tiền
+                </Button>
+              </div>
+            )}
+            
+            {depositTab === 'qr' && (
+              <div className="mt-6 text-center">
+                <h3 className="text-lg font-medium mb-4">Quét mã QR để nạp tiền</h3>
+                <div className="bg-white p-6 rounded-md border border-gray-200 mx-auto max-w-xs mb-6">
+                  <QrCode className="h-16 w-16 mx-auto mb-3 text-emerald-600" />
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=bank://${bankInfo.bankName}/${bankInfo.accountNumber}/${getTransferContent()}`} 
+                    alt="QR Code"
+                    className="w-48 h-48 mx-auto mb-4"
+                  />
+                  <div className="text-sm text-gray-600">
+                    <p className="font-medium">Quét mã QR bằng ứng dụng ngân hàng</p>
+                    <p className="text-xs mt-1">hoặc các ví điện tử hỗ trợ</p>
+                  </div>
+                </div>
+                
+                <div className="text-sm text-gray-600 mb-4">
+                  <p>Số tiền: <span className="font-bold text-black">{(parseFloat(sepayForm.watch('amount') || '0')).toLocaleString('vi-VN')}đ</span></p>
+                </div>
+                
+                <div className="grid grid-cols-5 gap-2 mb-6">
+                  {paymentAmounts.map(amount => (
+                    <button
+                      key={amount.value}
+                      type="button"
+                      className={`py-2 px-3 border rounded-md text-center transition-all ${
+                        selectedPaymentAmount === amount.value 
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                          : 'border-gray-200 hover:border-emerald-500'
+                      }`}
+                      onClick={() => handleAmountSelect(amount.value)}
                     >
-                      Hủy
-                    </Button>
-                    <Button type="submit" disabled={isProcessingSepay}>
+                      {amount.label}
+                    </button>
+                  ))}
+                </div>
+                
+                <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6" onClick={() => setDepositTab('bank')}>
+                  Tiếp tục
+                </Button>
+              </div>
+            )}
+            
+            {depositTab === 'momo' && (
+              <div className="mt-6 text-center">
+                <h3 className="text-lg font-medium mb-4">Thanh toán qua ví Momo</h3>
+                <div className="bg-white p-6 rounded-md border border-gray-200 mx-auto max-w-xs mb-6">
+                  <img 
+                    src="/lovable-uploads/b97148b3-3f98-4ed3-a28d-e2764daa882c.png" 
+                    alt="Momo" 
+                    className="h-16 w-16 mx-auto mb-4"
+                  />
+                  <p className="font-medium text-sm mb-4">Số điện thoại Momo</p>
+                  <p className="font-bold text-xl mb-1">{bankInfo.accountNumber}</p>
+                  <p className="text-sm mb-4">{bankInfo.accountName}</p>
+                  <Button 
+                    variant="outline" 
+                    className="text-sm border-violet-500 text-violet-600"
+                    onClick={() => copyToClipboard(bankInfo.accountNumber)}
+                  >
+                    <Copy className="h-3 w-3 mr-2" /> Copy số điện thoại
+                  </Button>
+                </div>
+                
+                <div className="text-sm text-gray-600 mb-4">
+                  <p>Số tiền: <span className="font-bold text-black">{(parseFloat(sepayForm.watch('amount') || '0')).toLocaleString('vi-VN')}đ</span></p>
+                  <p className="mt-1">Nội dung chuyển khoản: <span className="font-mono font-medium">{getTransferContent()}</span></p>
+                </div>
+                
+                <div className="grid grid-cols-5 gap-2 mb-6">
+                  {paymentAmounts.map(amount => (
+                    <button
+                      key={amount.value}
+                      type="button"
+                      className={`py-2 px-3 border rounded-md text-center transition-all ${
+                        selectedPaymentAmount === amount.value 
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                          : 'border-gray-200 hover:border-emerald-500'
+                      }`}
+                      onClick={() => handleAmountSelect(amount.value)}
+                    >
+                      {amount.label}
+                    </button>
+                  ))}
+                </div>
+                
+                <Button 
+                  className="w-full bg-violet-500 hover:bg-violet-600 text-lg py-6"
+                  onClick={() => {
+                    toast.info('Vui lòng chuyển khoản qua Momo', {
+                      description: 'Sau khi chuyển khoản, vui lòng liên hệ admin để xác nhận giao dịch'
+                    });
+                    setOpenDepositDialog(false);
+                  }}
+                >
+                  Thanh toán qua Momo
+                </Button>
+              </div>
+            )}
+            
+            {depositTab === 'atm' && (
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-4">Thanh toán qua thẻ ATM</h3>
+                
+                <Form {...sepayForm}>
+                  <form onSubmit={sepayForm.handleSubmit(handleSepayDeposit)} className="space-y-6">
+                    <FormField
+                      control={sepayForm.control}
+                      name="amount"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Số tiền (VNĐ)</FormLabel>
+                          <div className="grid grid-cols-5 gap-2 mb-3">
+                            {paymentAmounts.map(amount => (
+                              <button
+                                key={amount.value}
+                                type="button"
+                                className={`py-2 px-3 border rounded-md text-center transition-all ${
+                                  selectedPaymentAmount === amount.value 
+                                    ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                                    : 'border-gray-200 hover:border-emerald-500'
+                                }`}
+                                onClick={() => handleAmountSelect(amount.value)}
+                              >
+                                {amount.label}
+                              </button>
+                            ))}
+                          </div>
+                          <FormControl>
+                            <Input 
+                              placeholder="Nhập số tiền cần nạp" 
+                              {...field} 
+                              min="10000" 
+                              step="10000"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
+                      <h4 className="font-medium text-blue-800 mb-2">Thanh toán qua SePay</h4>
+                      <p className="text-sm text-blue-700 mb-2">
+                        Hệ thống sẽ chuyển bạn đến cổng thanh toán SePay để hoàn tất giao dịch. 
+                        Sau khi thanh toán xong, số dư sẽ được cập nhật tự động.
+                      </p>
+                      <p className="text-sm font-medium text-blue-700">
+                        Các phương thức thanh toán được hỗ trợ: Thẻ ATM, Thẻ tín dụng, Ví điện tử
+                      </p>
+                    </div>
+                    
+                    <Button 
+                      type="submit" 
+                      disabled={isProcessingSepay} 
+                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6"
+                    >
                       {isProcessingSepay ? (
                         <>
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -482,206 +789,66 @@ const Resources = () => {
                         </>
                       )}
                     </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </TabsContent>
+                  </form>
+                </Form>
+              </div>
+            )}
             
-            <TabsContent value="manual" className="space-y-4 pt-4">
-              <Form {...depositForm}>
-                <form onSubmit={depositForm.handleSubmit(handleDeposit)} className="space-y-6">
-                  <FormField
-                    control={depositForm.control}
-                    name="amount"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Số tiền (VNĐ)</FormLabel>
-                        <FormControl>
-                          <input 
-                            type="number" 
-                            placeholder="Nhập số tiền cần nạp" 
-                            {...field} 
-                            min="10000" 
-                            step="10000"
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
-                      <h4 className="font-medium text-yellow-800 mb-2">Thông tin chuyển khoản</h4>
-                      <p className="text-sm text-yellow-700 mb-2">Vui lòng chuyển khoản đến tài khoản:</p>
-                      <div className="space-y-1 text-sm">
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium">Ngân hàng:</span> 
-                          <span className="flex items-center">
-                            <img src="https://upload.wikimedia.org/wikipedia/vi/8/80/VietinBank_logo.svg" alt="VietinBank" className="h-4 mr-2" />
-                            {bankInfo.bankName} 
-                            <Button 
-                              variant="ghost" 
-                              className="h-6 w-6 p-0 ml-1" 
-                              onClick={() => copyToClipboard(bankInfo.bankName)}
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Số tài khoản:</span> 
-                          <span className="flex items-center">
-                            <span className="text-blue-600 font-mono">{bankInfo.accountNumber}</span>
-                            <Button 
-                              variant="ghost" 
-                              className="h-6 w-6 p-0 ml-1" 
-                              onClick={() => copyToClipboard(bankInfo.accountNumber)}
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="font-medium">Chủ tài khoản:</span> 
-                          <span className="flex items-center">
-                            <span className="text-blue-600 font-medium">{bankInfo.accountName}</span>
-                            <Button 
-                              variant="ghost" 
-                              className="h-6 w-6 p-0 ml-1" 
-                              onClick={() => copyToClipboard(bankInfo.accountName)}
-                            >
-                              <Copy className="h-3 w-3" />
-                            </Button>
-                          </span>
-                        </div>
-                      </div>
-                      <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
-                      <div className="flex justify-between font-mono bg-white p-2 rounded border border-yellow-200 text-sm">
-                        {getTransferContent()}
-                        <Button 
-                          variant="ghost" 
-                          className="h-6 w-6 p-0 ml-1" 
-                          onClick={() => copyToClipboard(getTransferContent())}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="bg-white p-4 rounded-md border border-gray-200 mb-3">
-                        <QrCode className="h-16 w-16 mx-auto mb-3 text-blue-600" />
-                        <img 
-                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bank://${bankInfo.bankName}/${bankInfo.accountNumber}/${getTransferContent()}`} 
-                          alt="QR Code"
-                          className="w-32 h-32 mx-auto"
-                        />
-                      </div>
-                      <p className="text-xs text-center text-gray-500">
-                        Quét mã QR để chuyển khoản nhanh chóng
-                      </p>
-                    </div>
+            {depositTab === 'phone' && (
+              <div className="mt-6">
+                <h3 className="text-lg font-medium mb-4">Thanh toán qua thẻ điện thoại</h3>
+                
+                <div className="grid grid-cols-3 gap-3 mb-6">
+                  <div className="border rounded-md p-3 text-center cursor-pointer hover:border-emerald-500 transition-all">
+                    <img src="https://cdn.tgdd.vn/Files/News/2021/04/15/Lich-Su-Logo-Viettel-02-768x768.jpg" alt="Viettel" className="h-16 w-16 mx-auto mb-2" />
+                    <span className="font-medium">Viettel</span>
                   </div>
-                  
-                  <FormField
-                    control={depositForm.control}
-                    name="transaction_id"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Mã giao dịch</FormLabel>
-                        <FormControl>
-                          <input 
-                            placeholder="Nhập mã giao dịch từ ngân hàng" 
-                            {...field}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={depositForm.control}
-                    name="bank_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tên ngân hàng của bạn</FormLabel>
-                        <FormControl>
-                          <input 
-                            placeholder="VCB, Techcombank, MB..." 
-                            {...field}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={depositForm.control}
-                    name="account_number"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Số tài khoản của bạn</FormLabel>
-                        <FormControl>
-                          <input 
-                            placeholder="Số tài khoản của bạn" 
-                            {...field}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={depositForm.control}
-                    name="account_name"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tên chủ tài khoản của bạn</FormLabel>
-                        <FormControl>
-                          <input 
-                            placeholder="Tên chủ tài khoản của bạn" 
-                            {...field}
-                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <DialogFooter className="gap-2 sm:gap-0">
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setOpenDepositDialog(false)}
+                  <div className="border rounded-md p-3 text-center cursor-pointer hover:border-emerald-500 transition-all">
+                    <img src="https://upload.wikimedia.org/wikipedia/vi/e/e6/MobiFone_logo.svg" alt="Mobifone" className="h-16 w-16 mx-auto mb-2" />
+                    <span className="font-medium">Mobifone</span>
+                  </div>
+                  <div className="border rounded-md p-3 text-center cursor-pointer hover:border-emerald-500 transition-all">
+                    <img src="https://upload.wikimedia.org/wikipedia/vi/9/9d/Vinaphone_logo.svg" alt="Vinaphone" className="h-16 w-16 mx-auto mb-2" />
+                    <span className="font-medium">Vinaphone</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-5 gap-2 mb-6">
+                  {paymentAmounts.map(amount => (
+                    <button
+                      key={amount.value}
+                      type="button"
+                      className={`py-2 px-3 border rounded-md text-center transition-all ${
+                        selectedPaymentAmount === amount.value 
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                          : 'border-gray-200 hover:border-emerald-500'
+                      }`}
+                      onClick={() => handleAmountSelect(amount.value)}
                     >
-                      Hủy
-                    </Button>
-                    <Button type="submit" disabled={isLoading}>
-                      {isLoading ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Đang xử lý
-                        </>
-                      ) : (
-                        <>
-                          <CreditCard className="mr-2 h-4 w-4" /> Xác nhận nạp tiền
-                        </>
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </Form>
-            </TabsContent>
-          </Tabs>
+                      {amount.label}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="space-y-4 mb-6">
+                  <Input placeholder="Nhập mã thẻ" className="text-lg" />
+                  <Input placeholder="Nhập serial thẻ" className="text-lg" />
+                </div>
+                
+                <Button 
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6"
+                  onClick={() => {
+                    toast.info('Tính năng đang phát triển', {
+                      description: 'Tính năng thanh toán qua thẻ điện thoại sẽ sớm được ra mắt'
+                    });
+                    setOpenDepositDialog(false);
+                  }}
+                >
+                  Thanh toán
+                </Button>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
