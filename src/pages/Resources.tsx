@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -13,7 +12,6 @@ import { z } from 'zod';
 import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, CreditCard } from 'lucide-react';
 import SectionHeading from '@/components/ui/section-heading';
 import { useAuthCheck } from '@/utils/authCheck';
-import { useToast } from '@/hooks/use-toast';
 import { toast } from 'sonner';
 
 const getResourceIcon = (type: string) => {
@@ -58,7 +56,6 @@ const Resources = () => {
   
   const navigate = useNavigate();
   const checkAuth = useAuthCheck();
-  const { toast: uiToast } = useToast();
 
   const depositForm = useForm<DepositFormValues>({
     resolver: zodResolver(depositSchema),
@@ -84,18 +81,14 @@ const Resources = () => {
       if (data.success) {
         setResources(data.data);
       } else {
-        toast({
-          title: 'Lỗi',
-          description: data.message || 'Không thể tải danh sách tài liệu',
-          variant: 'destructive'
+        toast.error('Lỗi', {
+          description: data.message || 'Không thể tải danh sách tài liệu'
         });
       }
     } catch (error) {
       console.error('Fetch resources error:', error);
-      toast({
-        title: 'Lỗi',
-        description: 'Lỗi kết nối đến máy chủ',
-        variant: 'destructive'
+      toast.error('Lỗi', {
+        description: 'Lỗi kết nối đến máy chủ'
       });
     } finally {
       setIsLoading(false);
@@ -197,8 +190,7 @@ const Resources = () => {
       const result = await response.json();
       
       if (result.success) {
-        toast({
-          title: 'Mua tài liệu thành công',
+        toast.success('Mua tài liệu thành công', {
           description: `Số dư còn lại: ${result.data.new_balance.toLocaleString('vi-VN')}đ`
         });
         
@@ -207,18 +199,14 @@ const Resources = () => {
         
         navigate('/profile');
       } else {
-        toast({
-          title: 'Lỗi',
-          description: result.message || 'Không thể mua tài liệu',
-          variant: 'destructive'
+        toast.error('Lỗi', {
+          description: result.message || 'Không thể mua tài liệu'
         });
       }
     } catch (error) {
       console.error('Purchase error:', error);
-      toast({
-        title: 'Lỗi',
-        description: 'Lỗi kết nối đến máy chủ',
-        variant: 'destructive'
+      toast.error('Lỗi', {
+        description: 'Lỗi kết nối đến máy chủ'
       });
     } finally {
       setIsLoading(false);
