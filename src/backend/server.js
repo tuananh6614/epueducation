@@ -13,6 +13,7 @@ const blogRoutes = require('./routes/blog');
 const likesRoutes = require('./routes/likes');
 const resourcesRoutes = require('./routes/resources');
 const seedDataRoutes = require('./routes/seedData');
+const migrationRoutes = require('./routes/migration');
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/blog', blogRoutes);
 app.use('/api/likes', likesRoutes);
 app.use('/api/resources', resourcesRoutes);
 app.use('/api', seedDataRoutes); // Add the seed routes
+app.use('/api/migration', migrationRoutes); // Add migration routes
 
 // Start server
 const PORT = process.env.PORT || 5000;

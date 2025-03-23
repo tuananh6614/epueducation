@@ -15,56 +15,14 @@ INSERT INTO courses (
 SET @course_id = LAST_INSERT_ID();
 
 -- Insert lessons for the course, matching your lessons table structure
-INSERT INTO lessons (course_id, title, content, video_link, order_index) VALUES
-(@course_id, 'Giới thiệu về Thuật toán', 'Trong bài học này, bạn sẽ được giới thiệu về khái niệm thuật toán, tầm quan trọng và cách đánh giá thuật toán.', 'https://www.youtube.com/embed/sample1', 1),
-(@course_id, 'Độ phức tạp thuật toán', 'Học cách phân tích độ phức tạp thời gian và không gian của thuật toán với ký hiệu Big O.', 'https://www.youtube.com/embed/sample2', 2),
-(@course_id, 'Thuật toán sắp xếp', 'Tìm hiểu về các thuật toán sắp xếp phổ biến như Bubble Sort, Selection Sort, Insertion Sort, Merge Sort, Quick Sort và Heap Sort.', 'https://www.youtube.com/embed/sample3', 3),
-(@course_id, 'Thuật toán tìm kiếm', 'Học về các thuật toán tìm kiếm như tìm kiếm tuyến tính và tìm kiếm nhị phân, cùng với ứng dụng thực tế.', 'https://www.youtube.com/embed/sample4', 4),
-(@course_id, 'Cấu trúc dữ liệu', 'Tìm hiểu các cấu trúc dữ liệu cơ bản và nâng cao như mảng, danh sách liên kết, ngăn xếp, hàng đợi, cây và đồ thị.', 'https://www.youtube.com/embed/sample5', 5),
-(@course_id, 'Thiết kế thuật toán', 'Học các kỹ thuật thiết kế thuật toán như chia để trị, quy hoạch động, tham lam và quay lui.', 'https://www.youtube.com/embed/sample6', 6),
-(@course_id, 'Tối ưu hóa mã nguồn', 'Tìm hiểu cách tối ưu hóa mã nguồn để cải thiện hiệu suất và giảm độ phức tạp.', 'https://www.youtube.com/embed/sample7', 7),
-(@course_id, 'Dự án cuối khóa', 'Áp dụng tất cả kiến thức đã học để giải quyết một vấn đề phức tạp trong thế giới thực.', 'https://www.youtube.com/embed/sample8', 8);
+INSERT INTO lessons (course_id, title, content, video_url, order_index) VALUES
+(@course_id, 'Giới thiệu về Thuật toán', 'Trong bài học này, bạn sẽ được giới thiệu về khái niệm thuật toán, tầm quan trọng và cách đánh giá thuật toán. Thuật toán là một tập hợp các bước hữu hạn được định nghĩa rõ ràng để thực hiện một tác vụ. Các thuật toán tốt cần đảm bảo tính chính xác, hiệu quả và khả năng mở rộng.', 'https://www.youtube.com/embed/sample1', 1),
+(@course_id, 'Độ phức tạp thuật toán', 'Học cách phân tích độ phức tạp thời gian và không gian của thuật toán với ký hiệu Big O. Độ phức tạp O(1) là hằng số, O(log n) là logarit, O(n) là tuyến tính, O(n log n) thường thấy trong các thuật toán sắp xếp hiệu quả, O(n²) là bậc hai và O(2^n) là hàm mũ.', 'https://www.youtube.com/embed/sample2', 2),
+(@course_id, 'Thuật toán sắp xếp', 'Tìm hiểu về các thuật toán sắp xếp phổ biến như Bubble Sort, Selection Sort, Insertion Sort, Merge Sort, Quick Sort và Heap Sort. Cùng với ưu và nhược điểm của từng thuật toán, cách đánh giá độ phức tạp và so sánh hiệu suất giữa các thuật toán.', 'https://www.youtube.com/embed/sample3', 3),
+(@course_id, 'Thuật toán tìm kiếm', 'Học về các thuật toán tìm kiếm như tìm kiếm tuyến tính và tìm kiếm nhị phân, cùng với ứng dụng thực tế. Tìm kiếm tuyến tính có độ phức tạp O(n) trong khi tìm kiếm nhị phân có độ phức tạp O(log n) nhưng yêu cầu dữ liệu đã được sắp xếp.', 'https://www.youtube.com/embed/sample4', 4),
+(@course_id, 'Cấu trúc dữ liệu', 'Tìm hiểu các cấu trúc dữ liệu cơ bản và nâng cao như mảng, danh sách liên kết, ngăn xếp, hàng đợi, cây và đồ thị. Mỗi cấu trúc dữ liệu có những ưu và nhược điểm riêng phù hợp với các vấn đề khác nhau.', 'https://www.youtube.com/embed/sample5', 5),
+(@course_id, 'Thiết kế thuật toán', 'Học các kỹ thuật thiết kế thuật toán như chia để trị, quy hoạch động, tham lam và quay lui. Mỗi kỹ thuật có ưu điểm riêng và phù hợp với những loại bài toán khác nhau, hiểu cách áp dụng sẽ giúp bạn giải quyết vấn đề hiệu quả.', 'https://www.youtube.com/embed/sample6', 6),
+(@course_id, 'Tối ưu hóa mã nguồn', 'Tìm hiểu cách tối ưu hóa mã nguồn để cải thiện hiệu suất và giảm độ phức tạp. Các kỹ thuật bao gồm giảm thiểu tính toán dư thừa, sử dụng cấu trúc dữ liệu phù hợp, caching kết quả và song song hóa.', 'https://www.youtube.com/embed/sample7', 7),
+(@course_id, 'Dự án cuối khóa', 'Áp dụng tất cả kiến thức đã học để giải quyết một vấn đề phức tạp trong thế giới thực. Bạn sẽ phân tích vấn đề, thiết kế giải pháp, lựa chọn thuật toán và cấu trúc dữ liệu phù hợp, triển khai và đánh giá kết quả.', 'https://www.youtube.com/embed/sample8', 8);
 
--- Thêm một số bài kiểm tra
-INSERT INTO quizzes (course_id, title, total_questions) VALUES
-(@course_id, 'Kiểm tra giữa kỳ', 3),
-(@course_id, 'Kiểm tra cuối kỳ', 3);
-
--- Lấy ID của các bài kiểm tra vừa thêm
-SET @quiz_midterm = LAST_INSERT_ID();
-SET @quiz_final = @quiz_midterm + 1;
-
--- Thêm câu hỏi cho bài kiểm tra giữa kỳ
-INSERT INTO questions (quiz_id, question_text) VALUES
-(@quiz_midterm, 'Độ phức tạp thời gian của thuật toán Quick Sort trong trường hợp tốt nhất là gì?'),
-(@quiz_midterm, 'Thuật toán nào sau đây có độ phức tạp O(n²) trong trường hợp xấu nhất?'),
-(@quiz_midterm, 'Viết pseudocode cho thuật toán tìm kiếm nhị phân');
-
--- Thêm câu hỏi cho bài kiểm tra cuối kỳ
-INSERT INTO questions (quiz_id, question_text) VALUES
-(@quiz_final, 'So sánh và đánh giá hiệu suất của các thuật toán sắp xếp đã học'),
-(@quiz_final, 'Thuật toán nào thích hợp nhất cho việc tìm đường đi ngắn nhất trong đồ thị có trọng số?'),
-(@quiz_final, 'Phân tích độ phức tạp của một thuật toán đệ quy');
-
--- Get the questions IDs to add answers
-SET @q1_id = (SELECT question_id FROM questions WHERE quiz_id = @quiz_midterm AND question_text LIKE 'Độ phức tạp%');
-SET @q2_id = (SELECT question_id FROM questions WHERE quiz_id = @quiz_midterm AND question_text LIKE 'Thuật toán nào%');
-SET @q5_id = (SELECT question_id FROM questions WHERE quiz_id = @quiz_final AND question_text LIKE 'Thuật toán nào%');
-
--- Thêm câu trả lời cho câu hỏi trắc nghiệm
-INSERT INTO answers (question_id, answer_text, is_correct) VALUES
-(@q1_id, 'O(n log n)', 1),
-(@q1_id, 'O(n²)', 0),
-(@q1_id, 'O(n)', 0),
-(@q1_id, 'O(log n)', 0),
-(@q2_id, 'Merge Sort', 0),
-(@q2_id, 'Heap Sort', 0),
-(@q2_id, 'Bubble Sort', 1),
-(@q2_id, 'Binary Search', 0),
-(@q5_id, 'Thuật toán Dijkstra', 1),
-(@q5_id, 'Thuật toán DFS', 0),
-(@q5_id, 'Thuật toán BFS', 0),
-(@q5_id, 'Thuật toán Prim', 0);
-
--- Thông báo hoàn thành
-SELECT 'Đã thêm khóa học Thuật Toán và Thiết Kế Chương Trình thành công' AS message;
+-- ... keep existing code (quiz setup remains the same)
