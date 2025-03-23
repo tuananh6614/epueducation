@@ -352,6 +352,8 @@ const Resources = () => {
   };
 
   const paymentAmounts = [
+    { value: "10000", label: "10.000đ" },
+    { value: "20000", label: "20.000đ" },
     { value: "50000", label: "50.000đ" },
     { value: "100000", label: "100.000đ" },
     { value: "150000", label: "150.000đ" },
@@ -483,8 +485,8 @@ const Resources = () => {
                 <h3 className="text-lg font-medium mb-4">Chuyển tiền bằng tài khoản ngân hàng</h3>
                 
                 <div className="mb-4">
-                  <div className="grid grid-cols-5 gap-2 mb-3">
-                    {paymentAmounts.map(amount => (
+                  <div className="grid grid-cols-4 gap-2 mb-3">
+                    {paymentAmounts.slice(0, 8).map(amount => (
                       <button
                         key={amount.value}
                         type="button"
@@ -515,12 +517,9 @@ const Resources = () => {
                   </div>
                   
                   <div className="mb-4">
-                    <div className="font-medium mb-1">Hướng dẫn quét mã QR:</div>
+                    <div className="font-medium mb-1">Tham khảo hướng dẫn của ngân hàng:</div>
                     <div className="flex gap-2 items-center">
-                      <span className="text-emerald-600 hover:underline cursor-pointer">AGRIBANK</span> |
-                      <span className="text-emerald-600 hover:underline cursor-pointer">VIETINBANK</span> |
-                      <span className="text-emerald-600 hover:underline cursor-pointer">VIETCOMBANK</span> |
-                      <span className="text-emerald-600 hover:underline cursor-pointer">BIDV</span>
+                      <span className="text-emerald-600 hover:underline cursor-pointer">VIETINBANK</span>
                     </div>
                   </div>
                   
@@ -541,7 +540,7 @@ const Resources = () => {
                       <div className="flex justify-between items-center">
                         <span className="font-medium">Ngân hàng:</span> 
                         <span className="flex items-center">
-                          <img src="https://upload.wikimedia.org/wikipedia/vi/8/80/VietinBank_logo.svg" alt="VietinBank" className="h-4 mr-2" />
+                          <img src="/lovable-uploads/c0c65079-9013-438c-a4a5-8ed80efc88ee.png" alt="VietinBank" className="h-5 mr-2" />
                           {bankInfo.bankName} 
                           <Button 
                             variant="ghost" 
@@ -580,11 +579,11 @@ const Resources = () => {
                       </div>
                     </div>
                     <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
-                    <div className="flex justify-between font-mono bg-white p-2 rounded border border-yellow-200 text-sm">
-                      {getTransferContent()}
+                    <div className="flex justify-between font-mono bg-white p-2 rounded border border-yellow-200 text-sm overflow-auto max-h-24">
+                      <div className="whitespace-normal break-all mr-2">{getTransferContent()}</div>
                       <Button 
                         variant="ghost" 
-                        className="h-6 w-6 p-0 ml-1" 
+                        className="h-6 w-6 p-0 ml-1 flex-shrink-0" 
                         onClick={() => copyToClipboard(getTransferContent())}
                       >
                         <Copy className="h-3 w-3" />
@@ -596,7 +595,7 @@ const Resources = () => {
                     <div className="bg-white p-4 rounded-md border border-gray-200 mb-3">
                       <QrCode className="h-12 w-12 mx-auto mb-3 text-emerald-600" />
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=bank://${bankInfo.bankName}/${bankInfo.accountNumber}/${getTransferContent()}`} 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=vietinbank:${bankInfo.accountNumber}/${getTransferContent()}`} 
                         alt="QR Code"
                         className="w-32 h-32 mx-auto"
                       />
@@ -627,7 +626,7 @@ const Resources = () => {
                 <div className="bg-white p-6 rounded-md border border-gray-200 mx-auto max-w-xs mb-6">
                   <QrCode className="h-16 w-16 mx-auto mb-3 text-emerald-600" />
                   <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=bank://${bankInfo.bankName}/${bankInfo.accountNumber}/${getTransferContent()}`} 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=vietinbank:${bankInfo.accountNumber}/${getTransferContent()}`} 
                     alt="QR Code"
                     className="w-48 h-48 mx-auto mb-4"
                   />
@@ -641,8 +640,8 @@ const Resources = () => {
                   <p>Số tiền: <span className="font-bold text-black">{(parseFloat(sepayForm.watch('amount') || '0')).toLocaleString('vi-VN')}đ</span></p>
                 </div>
                 
-                <div className="grid grid-cols-5 gap-2 mb-6">
-                  {paymentAmounts.map(amount => (
+                <div className="grid grid-cols-4 gap-2 mb-6">
+                  {paymentAmounts.slice(0, 8).map(amount => (
                     <button
                       key={amount.value}
                       type="button"
@@ -690,8 +689,8 @@ const Resources = () => {
                   <p className="mt-1">Nội dung chuyển khoản: <span className="font-mono font-medium">{getTransferContent()}</span></p>
                 </div>
                 
-                <div className="grid grid-cols-5 gap-2 mb-6">
-                  {paymentAmounts.map(amount => (
+                <div className="grid grid-cols-4 gap-2 mb-6">
+                  {paymentAmounts.slice(0, 8).map(amount => (
                     <button
                       key={amount.value}
                       type="button"
@@ -733,8 +732,8 @@ const Resources = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Số tiền (VNĐ)</FormLabel>
-                          <div className="grid grid-cols-5 gap-2 mb-3">
-                            {paymentAmounts.map(amount => (
+                          <div className="grid grid-cols-4 gap-2 mb-3">
+                            {paymentAmounts.slice(0, 8).map(amount => (
                               <button
                                 key={amount.value}
                                 type="button"
@@ -751,183 +750,4 @@ const Resources = () => {
                           </div>
                           <FormControl>
                             <Input 
-                              placeholder="Nhập số tiền cần nạp" 
-                              {...field} 
-                              min="10000" 
-                              step="10000"
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-                      <h4 className="font-medium text-blue-800 mb-2">Thanh toán qua SePay</h4>
-                      <p className="text-sm text-blue-700 mb-2">
-                        Hệ thống sẽ chuyển bạn đến cổng thanh toán SePay để hoàn tất giao dịch. 
-                        Sau khi thanh toán xong, số dư sẽ được cập nhật tự động.
-                      </p>
-                      <p className="text-sm font-medium text-blue-700">
-                        Các phương thức thanh toán được hỗ trợ: Thẻ ATM, Thẻ tín dụng, Ví điện tử
-                      </p>
-                    </div>
-                    
-                    <Button 
-                      type="submit" 
-                      disabled={isProcessingSepay} 
-                      className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6"
-                    >
-                      {isProcessingSepay ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Đang xử lý
-                        </>
-                      ) : (
-                        <>
-                          <ExternalLink className="mr-2 h-4 w-4" /> Thanh toán qua SePay
-                        </>
-                      )}
-                    </Button>
-                  </form>
-                </Form>
-              </div>
-            )}
-            
-            {depositTab === 'phone' && (
-              <div className="mt-6">
-                <h3 className="text-lg font-medium mb-4">Thanh toán qua thẻ điện thoại</h3>
-                
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                  <div className="border rounded-md p-3 text-center cursor-pointer hover:border-emerald-500 transition-all">
-                    <img src="https://cdn.tgdd.vn/Files/News/2021/04/15/Lich-Su-Logo-Viettel-02-768x768.jpg" alt="Viettel" className="h-16 w-16 mx-auto mb-2" />
-                    <span className="font-medium">Viettel</span>
-                  </div>
-                  <div className="border rounded-md p-3 text-center cursor-pointer hover:border-emerald-500 transition-all">
-                    <img src="https://upload.wikimedia.org/wikipedia/vi/e/e6/MobiFone_logo.svg" alt="Mobifone" className="h-16 w-16 mx-auto mb-2" />
-                    <span className="font-medium">Mobifone</span>
-                  </div>
-                  <div className="border rounded-md p-3 text-center cursor-pointer hover:border-emerald-500 transition-all">
-                    <img src="https://upload.wikimedia.org/wikipedia/vi/9/9d/Vinaphone_logo.svg" alt="Vinaphone" className="h-16 w-16 mx-auto mb-2" />
-                    <span className="font-medium">Vinaphone</span>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-5 gap-2 mb-6">
-                  {paymentAmounts.map(amount => (
-                    <button
-                      key={amount.value}
-                      type="button"
-                      className={`py-2 px-3 border rounded-md text-center transition-all ${
-                        selectedPaymentAmount === amount.value 
-                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
-                          : 'border-gray-200 hover:border-emerald-500'
-                      }`}
-                      onClick={() => handleAmountSelect(amount.value)}
-                    >
-                      {amount.label}
-                    </button>
-                  ))}
-                </div>
-                
-                <div className="space-y-4 mb-6">
-                  <Input placeholder="Nhập mã thẻ" className="text-lg" />
-                  <Input placeholder="Nhập serial thẻ" className="text-lg" />
-                </div>
-                
-                <Button 
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6"
-                  onClick={() => {
-                    toast.info('Tính năng đang phát triển', {
-                      description: 'Tính năng thanh toán qua thẻ điện thoại sẽ sớm được ra mắt'
-                    });
-                    setOpenDepositDialog(false);
-                  }}
-                >
-                  Thanh toán
-                </Button>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={openPurchaseDialog} onOpenChange={setOpenPurchaseDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Xác nhận mua tài liệu</DialogTitle>
-            <DialogDescription>
-              Vui lòng xác nhận mua tài liệu
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {selectedResource && (
-              <>
-                <div className="flex items-center gap-3 border-b pb-4">
-                  <div className="p-2 bg-primary/10 rounded-full">
-                    {getResourceIcon(selectedResource.resource_type || 'PDF')}
-                  </div>
-                  <div>
-                    <h3 className="font-medium">{selectedResource.title}</h3>
-                    <p className="text-sm text-muted-foreground">{selectedResource.resource_type}</p>
-                  </div>
-                </div>
-                
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-muted-foreground">Giá tài liệu:</span>
-                  <span className="font-medium">{selectedResource.price?.toLocaleString('vi-VN')}đ</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2">
-                  <span className="font-medium">Số dư hiện tại:</span>
-                  <span className="font-medium">{userBalance.toLocaleString('vi-VN')}đ</span>
-                </div>
-                
-                <div className="flex justify-between items-center py-2 border-t">
-                  <span className="font-medium">Số dư sau khi mua:</span>
-                  <span className={`font-medium ${userBalance < (selectedResource.price || 0) ? 'text-red-500' : 'text-green-500'}`}>
-                    {(userBalance - (selectedResource.price || 0)).toLocaleString('vi-VN')}đ
-                  </span>
-                </div>
-                
-                {userBalance < (selectedResource.price || 0) && (
-                  <div className="bg-red-50 p-3 rounded-md text-sm text-red-600 mt-2">
-                    Số dư không đủ để mua tài liệu này. Vui lòng nạp thêm tiền vào tài khoản.
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-          
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => setOpenPurchaseDialog(false)}
-            >
-              Hủy
-            </Button>
-            <Button 
-              onClick={handlePurchase} 
-              disabled={isLoading || !selectedResource || userBalance < (selectedResource?.price || 0)}
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Đang xử lý
-                </>
-              ) : (
-                <>
-                  <Download className="mr-2 h-4 w-4" /> Xác nhận mua
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Layout>
-  );
-};
-
-export default Resources;
+                              placeholder="Nhập số tiền cần nạp"
