@@ -1,3 +1,4 @@
+
 export interface User {
   user_id: number;
   username: string;
@@ -44,9 +45,12 @@ export interface BlogPost {
   content: string | null;
   created_at: string;
   author?: string;
+  author_fullname?: string;
+  author_avatar?: string;
   excerpt?: string;
   thumbnail?: string;
   comments_count?: number;
+  likes_count?: number;
 }
 
 export interface Comment {
@@ -57,6 +61,8 @@ export interface Comment {
   created_at: string;
   updated_at: string | null;
   author?: string;
+  author_fullname?: string;
+  author_avatar?: string;
 }
 
 export interface Resource {
