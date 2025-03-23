@@ -31,6 +31,21 @@ const formatVideoUrl = (url) => {
     return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
   }
   
+  // Check if it's a Google Drive URL
+  if (url.includes('drive.google.com/file/d/')) {
+    // Extract the file ID
+    const fileIdMatch = url.match(/\/d\/([^\/]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+    }
+  }
+  
+  // Check if it's a Google Drive folder URL
+  if (url.includes('drive.google.com/drive/folders/')) {
+    // For folders, we can't directly embed, so return null
+    return null;
+  }
+  
   // For other video URLs, just return as is
   // This will handle direct video links, other embed codes, etc.
   return url;

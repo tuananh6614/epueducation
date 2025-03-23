@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, ArrowRight, BookOpen, Video, Loader2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, Video, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthCheck } from '@/utils/authCheck';
 import { Lesson } from '@/types';
@@ -55,13 +55,34 @@ const fetchEnrollmentStatus = async (courseId: string): Promise<boolean> => {
 };
 
 const hasValidVideoUrl = (lesson: any): boolean => {
-  return Boolean(lesson?.video_link || lesson?.video_url);
+  if (!lesson) return false;
+  const videoUrl = lesson.video_link || lesson.video_url;
+  return Boolean(videoUrl);
 }
 
 const VideoPlayer = ({ videoUrl, title }: { videoUrl: string, title: string }) => {
-  const isIframe = videoUrl?.includes('embed') || videoUrl?.includes('player');
+  const [error, setError] = useState(false);
   
-  if (isIframe) {
+  useEffect(() => {
+    setError(false);
+  }, [videoUrl]);
+  
+  if (!videoUrl) {
+    return <p className="text-center py-4">Video không khả dụng</p>;
+  }
+  
+  const isEmbed = 
+    videoUrl.includes('youtube.com/embed/') || 
+    videoUrl.includes('player.vimeo.com/') ||
+    videoUrl.includes('drive.google.com/file/d/') && videoUrl.includes('/preview');
+  
+  const isDirectVideo = 
+    videoUrl.endsWith('.mp4') || 
+    videoUrl.endsWith('.webm') || 
+    videoUrl.endsWith('.ogg') ||
+    videoUrl.endsWith('.mov');
+  
+  if (isEmbed) {
     return (
       <iframe
         width="100%"
@@ -71,9 +92,10 @@ const VideoPlayer = ({ videoUrl, title }: { videoUrl: string, title: string }) =
         frameBorder="0"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
+        onError={() => setError(true)}
       ></iframe>
     );
-  } else if (videoUrl) {
+  } else if (isDirectVideo) {
     return (
       <video 
         width="100%" 
@@ -81,12 +103,41 @@ const VideoPlayer = ({ videoUrl, title }: { videoUrl: string, title: string }) =
         controls 
         src={videoUrl}
         title={title}
+        onError={() => setError(true)}
       >
-        Your browser does not support the video tag.
+        Trình duyệt của bạn không hỗ trợ thẻ video.
       </video>
     );
   } else {
-    return <p className="text-center py-4">Video không khả dụng</p>;
+    return (
+      <>
+        {error ? (
+          <div className="flex flex-col items-center justify-center h-full p-4 text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mb-2" />
+            <p>Không thể tải video. URL không được hỗ trợ hoặc video không tồn tại.</p>
+            <a 
+              href={videoUrl} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary underline mt-2"
+            >
+              Mở video trong tab mới
+            </a>
+          </div>
+        ) : (
+          <iframe
+            width="100%"
+            height="100%"
+            src={videoUrl}
+            title={title}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            onError={() => setError(true)}
+          ></iframe>
+        )}
+      </>
+    );
   }
 };
 
