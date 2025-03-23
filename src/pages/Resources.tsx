@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -875,7 +874,7 @@ const Resources = () => {
               )}
             </DialogDescription>
           </DialogHeader>
-            
+          
           <div className="grid gap-4 py-4">
             <div className="flex items-center justify-between">
               <span className="font-medium">Giá tài liệu:</span>
