@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { createConnection } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
@@ -118,6 +117,35 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Get course error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Check if user is enrolled in a course
+router.get('/:id/enrollment-status', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    const connection = await createConnection();
+    
+    // Check if already enrolled
+    const [enrollments] = await connection.execute(
+      'SELECT * FROM courseenrollments WHERE user_id = ? AND course_id = ?',
+      [userId, id]
+    );
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      isEnrolled: enrollments.length > 0
+    });
+  } catch (error) {
+    console.error('Check enrollment error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Lỗi máy chủ, vui lòng thử lại sau' 

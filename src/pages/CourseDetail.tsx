@@ -7,10 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { BookOpen, Clock, PlayCircle, BarChart, CheckCircle, User, Globe, Loader2, FileText } from 'lucide-react';
+import { BookOpen, Clock, PlayCircle, BarChart, CheckCircle, User, Globe, Loader2, FileText, Lock } from 'lucide-react';
 import { Course } from '@/types';
 import NotFound from './NotFound';
 import { useToast } from '@/hooks/use-toast';
+import { useAuthCheck } from '@/utils/authCheck';
 
 const fetchCourseDetail = async (courseId: string): Promise<any> => {
   const response = await fetch(`http://localhost:5000/api/courses/${courseId}`);
@@ -21,6 +22,27 @@ const fetchCourseDetail = async (courseId: string): Promise<any> => {
   }
   
   return data.data;
+};
+
+const fetchEnrollmentStatus = async (courseId: string): Promise<boolean> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+    
+    const response = await fetch(`http://localhost:5000/api/courses/${courseId}/enrollment-status`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    if (!response.ok) return false;
+    
+    const data = await response.json();
+    return data.isEnrolled;
+  } catch (error) {
+    console.error('Error checking enrollment status:', error);
+    return false;
+  }
 };
 
 const fetchRelatedCourses = async (): Promise<Course[]> => {
@@ -74,8 +96,11 @@ const CourseCard = ({ course }: { course: Course }) => {
 const CourseDetail = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const [activeTab, setActiveTab] = useState('overview');
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isEnrolling, setIsEnrolling] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const checkAuth = useAuthCheck();
   
   const { 
     data: courseDetail, 
@@ -104,6 +129,14 @@ const CourseDetail = () => {
       c.categories?.some(cat => courseDetail?.categories?.includes(cat))
     )
     .slice(0, 3);
+  
+  React.useEffect(() => {
+    if (courseId) {
+      fetchEnrollmentStatus(courseId).then(status => {
+        setIsEnrolled(status);
+      });
+    }
+  }, [courseId]);
   
   if (isLoadingDetail) {
     return (
@@ -199,23 +232,46 @@ const CourseDetail = () => {
     ]
   };
 
-  const handleEnrollClick = () => {
-    const user = localStorage.getItem('user');
-    
-    if (!user) {
-      toast({
-        title: "Yêu cầu đăng nhập",
-        description: "Vui lòng đăng nhập để đăng ký khóa học này.",
-        variant: "destructive",
-      });
-      navigate('/login');
+  const handleEnrollClick = async () => {
+    if (!checkAuth('đăng ký khóa học này')) {
       return;
     }
     
-    toast({
-      title: "Đăng ký thành công",
-      description: `Bạn đã đăng ký khóa học "${courseDetail.title}" thành công.`,
-    });
+    try {
+      setIsEnrolling(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5000/api/courses/${courseId}/enroll`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Đăng ký thành công",
+          description: `Bạn đã đăng ký khóa học "${courseDetail.title}" thành công.`,
+        });
+        setIsEnrolled(true);
+      } else {
+        toast({
+          title: "Lỗi",
+          description: data.message || "Không thể đăng ký khóa học",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể kết nối đến máy chủ",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnrolling(false);
+    }
   };
 
   const isInstructor = () => {
@@ -270,13 +326,24 @@ const CourseDetail = () => {
                 </div>
               </div>
               
-              <Button 
-                size="lg" 
-                className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
-                onClick={handleEnrollClick}
-              >
-                Đăng ký học miễn phí
-              </Button>
+              {isEnrolled ? (
+                <Button 
+                  size="lg" 
+                  className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                  onClick={() => navigate(`/courses/${courseId}/lessons/${courseDetail.lessons[0]?.lesson_id}`)}
+                >
+                  Tiếp tục học
+                </Button>
+              ) : (
+                <Button 
+                  size="lg" 
+                  className="rounded-full shadow-lg hover:shadow-xl transition-all duration-300"
+                  onClick={handleEnrollClick}
+                  disabled={isEnrolling}
+                >
+                  {isEnrolling ? 'Đang đăng ký...' : 'Đăng ký học miễn phí'}
+                </Button>
+              )}
             </div>
             
             <div className="w-full md:w-2/5 animate-slide-up animation-delay-200">
@@ -397,10 +464,16 @@ const CourseDetail = () => {
                             (l) => l.title === lesson.title || l.title.includes(lesson.title)
                           );
                           
+                          const canAccess = isEnrolled || lesson.isPreview;
+                          
                           return (
                             <div key={lessonIndex} className="flex justify-between items-center p-4 hover:bg-muted/10">
                               <div className="flex items-center gap-3">
-                                <PlayCircle className="h-5 w-5 text-muted-foreground" />
+                                {canAccess ? (
+                                  <PlayCircle className="h-5 w-5 text-muted-foreground" />
+                                ) : (
+                                  <Lock className="h-5 w-5 text-muted-foreground" />
+                                )}
                                 <span>{lesson.title}</span>
                                 {lesson.isPreview && (
                                   <Badge variant="outline" className="ml-2">Xem trước</Badge>
@@ -408,6 +481,13 @@ const CourseDetail = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 <span className="text-sm text-muted-foreground">{lesson.duration}</span>
+                                {canAccess && originalLesson && (
+                                  <Link to={`/courses/${courseId}/lessons/${originalLesson.lesson_id}`}>
+                                    <Button variant="ghost" size="sm">
+                                      <PlayCircle className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                )}
                                 {isInstructor() && originalLesson && (
                                   <Link to={`/courses/${courseId}/lessons/${originalLesson.lesson_id}/content`}>
                                     <Button variant="ghost" size="sm">

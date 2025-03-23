@@ -9,6 +9,7 @@ import Index from '@/pages/Index';
 import About from '@/pages/About';
 import Courses from '@/pages/Courses';
 import CourseDetail from '@/pages/CourseDetail';
+import LessonView from '@/pages/LessonView';
 import LessonContent from '@/pages/LessonContent';
 import Blog from '@/pages/Blog';
 import BlogDetail from '@/pages/BlogDetail';
@@ -33,6 +34,11 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:courseId" element={<CourseDetail />} />
+            <Route path="/courses/:courseId/lessons/:lessonId" element={
+              <ProtectedRoute>
+                <LessonView />
+              </ProtectedRoute>
+            } />
             <Route path="/courses/:courseId/lessons/:lessonId/content" element={
               <ProtectedRoute>
                 <LessonContent />
