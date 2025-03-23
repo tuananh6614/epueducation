@@ -6,10 +6,11 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, CreditCard } from 'lucide-react';
+import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, CreditCard, ExternalLink } from 'lucide-react';
 import SectionHeading from '@/components/ui/section-heading';
 import { useAuthCheck } from '@/utils/authCheck';
 import { toast } from 'sonner';
@@ -39,6 +40,13 @@ const depositSchema = z.object({
   transaction_id: z.string().min(1, { message: 'Vui lòng nhập mã giao dịch' })
 });
 
+const sepaySchema = z.object({
+  amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
+    message: 'Số tiền phải lớn hơn 0'
+  })
+});
+
+type SepayFormValues = z.infer<typeof sepaySchema>;
 type DepositFormValues = z.infer<typeof depositSchema>;
 
 const Resources = () => {
@@ -53,6 +61,8 @@ const Resources = () => {
     accountNumber: '1234567890',
     accountName: 'NGUYEN VAN A'
   });
+  const [isProcessingSepay, setIsProcessingSepay] = useState(false);
+  const [depositTab, setDepositTab] = useState("manual");
   
   const navigate = useNavigate();
   const checkAuth = useAuthCheck();
@@ -65,6 +75,13 @@ const Resources = () => {
       account_number: '',
       account_name: '',
       transaction_id: ''
+    }
+  });
+
+  const sepayForm = useForm<SepayFormValues>({
+    resolver: zodResolver(sepaySchema),
+    defaultValues: {
+      amount: ''
     }
   });
 
@@ -166,6 +183,53 @@ const Resources = () => {
     }
   };
 
+  const handleSepayDeposit = async (data: SepayFormValues) => {
+    if (!checkAuth('nạp tiền')) return;
+    
+    const token = localStorage.getItem('token');
+    
+    setIsProcessingSepay(true);
+    
+    try {
+      const response = await fetch('http://localhost:5000/api/resources/sepay-deposit', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          amount: parseFloat(data.amount)
+        })
+      });
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        localStorage.setItem('pendingPayment', result.data.transaction_ref);
+        
+        window.open(result.data.payment_url, '_blank');
+        
+        toast.info('Đang chuyển hướng đến trang thanh toán', {
+          description: 'Vui lòng hoàn tất thanh toán trên trang SePay'
+        });
+        
+        setOpenDepositDialog(false);
+        sepayForm.reset();
+      } else {
+        toast.error('Lỗi', {
+          description: result.message || 'Không thể tạo yêu cầu thanh toán'
+        });
+      }
+    } catch (error) {
+      console.error('SePay deposit error:', error);
+      toast.error('Lỗi', {
+        description: 'Lỗi kết nối đến máy chủ'
+      });
+    } finally {
+      setIsProcessingSepay(false);
+    }
+  };
+
   const handlePurchase = async () => {
     if (!selectedResource) return;
     
@@ -220,6 +284,48 @@ const Resources = () => {
       setOpenPurchaseDialog(true);
     }
   };
+
+  useEffect(() => {
+    const checkPaymentStatus = async () => {
+      const pendingPayment = localStorage.getItem('pendingPayment');
+      
+      if (pendingPayment) {
+        const token = localStorage.getItem('token');
+        
+        try {
+          const response = await fetch(`http://localhost:5000/api/resources/check-payment-status/${pendingPayment}`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            if (result.data.status === 'completed') {
+              toast.success('Nạp tiền thành công', {
+                description: `Số tiền ${parseFloat(result.data.amount).toLocaleString('vi-VN')}đ đã được cộng vào tài khoản`
+              });
+              
+              fetchUserBalance();
+              
+              localStorage.removeItem('pendingPayment');
+            } else if (result.data.status === 'failed') {
+              toast.error('Nạp tiền thất bại', {
+                description: 'Giao dịch không thành công, vui lòng thử lại sau'
+              });
+              
+              localStorage.removeItem('pendingPayment');
+            }
+          }
+        } catch (error) {
+          console.error('Check payment status error:', error);
+        }
+      }
+    };
+    
+    checkPaymentStatus();
+  }, []);
 
   return (
     <Layout>
@@ -299,138 +405,207 @@ const Resources = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <Form {...depositForm}>
-            <form onSubmit={depositForm.handleSubmit(handleDeposit)} className="space-y-6">
-              <FormField
-                control={depositForm.control}
-                name="amount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Số tiền (VNĐ)</FormLabel>
-                    <FormControl>
-                      <input 
-                        type="number" 
-                        placeholder="Nhập số tiền cần nạp" 
-                        {...field} 
-                        min="10000" 
-                        step="10000"
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
-                <h4 className="font-medium text-yellow-800 mb-2">Thông tin chuyển khoản</h4>
-                <p className="text-sm text-yellow-700 mb-2">Vui lòng chuyển khoản đến tài khoản:</p>
-                <div className="space-y-1 text-sm">
-                  <p><span className="font-medium">Ngân hàng:</span> {bankInfo.bankName}</p>
-                  <p><span className="font-medium">Số tài khoản:</span> {bankInfo.accountNumber}</p>
-                  <p><span className="font-medium">Chủ tài khoản:</span> {bankInfo.accountName}</p>
-                </div>
-                <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
-                <p className="font-mono bg-white p-2 rounded border border-yellow-200 text-sm">
-                  NAPTIEN {localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') || '{}').username : ''}
-                </p>
-              </div>
-              
-              <FormField
-                control={depositForm.control}
-                name="transaction_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mã giao dịch</FormLabel>
-                    <FormControl>
-                      <input 
-                        placeholder="Nhập mã giao dịch từ ngân hàng" 
-                        {...field}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={depositForm.control}
-                name="bank_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tên ngân hàng của bạn</FormLabel>
-                    <FormControl>
-                      <input 
-                        placeholder="VCB, Techcombank, MB..." 
-                        {...field}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={depositForm.control}
-                name="account_number"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Số tài khoản của bạn</FormLabel>
-                    <FormControl>
-                      <input 
-                        placeholder="Số tài khoản của bạn" 
-                        {...field}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={depositForm.control}
-                name="account_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tên chủ tài khoản của bạn</FormLabel>
-                    <FormControl>
-                      <input 
-                        placeholder="Tên chủ tài khoản của bạn" 
-                        {...field}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setOpenDepositDialog(false)}
-                >
-                  Hủy
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Đang xử lý
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" /> Xác nhận nạp tiền
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          <Tabs defaultValue="sepay" value={depositTab} onValueChange={setDepositTab}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="sepay">SePay (Tự động)</TabsTrigger>
+              <TabsTrigger value="manual">Chuyển khoản thủ công</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="sepay" className="space-y-4 pt-4">
+              <Form {...sepayForm}>
+                <form onSubmit={sepayForm.handleSubmit(handleSepayDeposit)} className="space-y-6">
+                  <FormField
+                    control={sepayForm.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Số tiền (VNĐ)</FormLabel>
+                        <FormControl>
+                          <input 
+                            type="number" 
+                            placeholder="Nhập số tiền cần nạp" 
+                            {...field} 
+                            min="10000" 
+                            step="10000"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
+                    <h4 className="font-medium text-blue-800 mb-2">Thanh toán qua SePay</h4>
+                    <p className="text-sm text-blue-700 mb-2">
+                      Hệ thống sẽ chuyển bạn đến cổng thanh toán SePay để hoàn tất giao dịch. 
+                      Sau khi thanh toán xong, số dư sẽ được cập nhật tự động.
+                    </p>
+                    <p className="text-sm font-medium text-blue-700">
+                      Các phương thức thanh toán được hỗ trợ: Thẻ ATM, Thẻ tín dụng, Ví điện tử
+                    </p>
+                  </div>
+                  
+                  <DialogFooter className="gap-2 sm:gap-0">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setOpenDepositDialog(false)}
+                    >
+                      Hủy
+                    </Button>
+                    <Button type="submit" disabled={isProcessingSepay}>
+                      {isProcessingSepay ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Đang xử lý
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="mr-2 h-4 w-4" /> Thanh toán qua SePay
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </TabsContent>
+            
+            <TabsContent value="manual" className="space-y-4 pt-4">
+              <Form {...depositForm}>
+                <form onSubmit={depositForm.handleSubmit(handleDeposit)} className="space-y-6">
+                  <FormField
+                    control={depositForm.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Số tiền (VNĐ)</FormLabel>
+                        <FormControl>
+                          <input 
+                            type="number" 
+                            placeholder="Nhập số tiền cần nạp" 
+                            {...field} 
+                            min="10000" 
+                            step="10000"
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
+                    <h4 className="font-medium text-yellow-800 mb-2">Thông tin chuyển khoản</h4>
+                    <p className="text-sm text-yellow-700 mb-2">Vui lòng chuyển khoản đến tài khoản:</p>
+                    <div className="space-y-1 text-sm">
+                      <p><span className="font-medium">Ngân hàng:</span> {bankInfo.bankName}</p>
+                      <p><span className="font-medium">Số tài khoản:</span> {bankInfo.accountNumber}</p>
+                      <p><span className="font-medium">Chủ tài khoản:</span> {bankInfo.accountName}</p>
+                    </div>
+                    <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
+                    <p className="font-mono bg-white p-2 rounded border border-yellow-200 text-sm">
+                      NAPTIEN {localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') || '{}').username : ''}
+                    </p>
+                  </div>
+                  
+                  <FormField
+                    control={depositForm.control}
+                    name="transaction_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mã giao dịch</FormLabel>
+                        <FormControl>
+                          <input 
+                            placeholder="Nhập mã giao dịch từ ngân hàng" 
+                            {...field}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={depositForm.control}
+                    name="bank_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tên ngân hàng của bạn</FormLabel>
+                        <FormControl>
+                          <input 
+                            placeholder="VCB, Techcombank, MB..." 
+                            {...field}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={depositForm.control}
+                    name="account_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Số tài khoản của bạn</FormLabel>
+                        <FormControl>
+                          <input 
+                            placeholder="Số tài khoản của bạn" 
+                            {...field}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={depositForm.control}
+                    name="account_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Tên chủ tài khoản của bạn</FormLabel>
+                        <FormControl>
+                          <input 
+                            placeholder="Tên chủ tài khoản của bạn" 
+                            {...field}
+                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <DialogFooter className="gap-2 sm:gap-0">
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => setOpenDepositDialog(false)}
+                    >
+                      Hủy
+                    </Button>
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Đang xử lý
+                        </>
+                      ) : (
+                        <>
+                          <CreditCard className="mr-2 h-4 w-4" /> Xác nhận nạp tiền
+                        </>
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
@@ -461,7 +636,7 @@ const Resources = () => {
                   <span className="font-medium">{selectedResource.price?.toLocaleString('vi-VN')}đ</span>
                 </div>
                 
-                <div className="flex justify-between items-center py-2 border-t">
+                <div className="flex justify-between items-center py-2">
                   <span className="font-medium">Số dư hiện tại:</span>
                   <span className="font-medium">{userBalance.toLocaleString('vi-VN')}đ</span>
                 </div>

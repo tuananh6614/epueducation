@@ -1,10 +1,12 @@
-
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { createConnection } = require('../db');
 const { authenticateToken, adminCheck } = require('../middleware/auth');
 const { resourceUpload, getFileType, resourcesDir } = require('../config/upload');
+const SEPAY_CONFIG = require('../config/sepay');
+const axios = require('axios');
+const crypto = require('crypto');
 
 const router = express.Router();
 
@@ -476,6 +478,226 @@ router.get('/pending-deposits', authenticateToken, adminCheck, async (req, res) 
     });
   } catch (error) {
     console.error('Get pending deposits error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ, vui lòng thử lại sau'
+    });
+  }
+});
+
+// Tích hợp thanh toán SePay
+router.post('/sepay-deposit', authenticateToken, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    const userId = req.user.id;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Vui lòng nhập số tiền hợp lệ'
+      });
+    }
+    
+    // Tạo mã giao dịch duy nhất
+    const transactionRef = `SP${Date.now()}${userId}`;
+    
+    // Lấy thông tin người dùng
+    const connection = await createConnection();
+    const [users] = await connection.execute('SELECT username FROM users WHERE user_id = ?', [userId]);
+    const username = users[0].username;
+    
+    // Tạo chữ ký
+    const dataToSign = `${SEPAY_CONFIG.MERCHANT_ID}|${transactionRef}|${amount}|${username}`;
+    const signature = crypto
+      .createHmac('sha256', SEPAY_CONFIG.API_TOKEN)
+      .update(dataToSign)
+      .digest('hex');
+    
+    // Tạo URL thanh toán
+    const paymentData = {
+      merchant_id: SEPAY_CONFIG.MERCHANT_ID,
+      transaction_id: transactionRef,
+      amount: amount,
+      currency: 'VND',
+      description: `Nạp tiền cho tài khoản ${username}`,
+      customer_name: username,
+      customer_email: req.user.email || '',
+      return_url: `http://localhost:5173/payment-result`, // URL trả về sau khi thanh toán
+      callback_url: SEPAY_CONFIG.WEBHOOK_URL, // Webhook URL
+      signature: signature
+    };
+    
+    // Gọi API của SePay để tạo yêu cầu thanh toán
+    const sepayResponse = await axios.post(`${SEPAY_CONFIG.API_URL}/create-payment`, paymentData, {
+      headers: {
+        'Authorization': `Bearer ${SEPAY_CONFIG.API_TOKEN}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (sepayResponse.data.success) {
+      // Lưu thông tin giao dịch vào cơ sở dữ liệu
+      await connection.execute(
+        'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref, metadata) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          userId, 
+          amount, 
+          'deposit', 
+          'pending', 
+          transactionRef,
+          JSON.stringify({
+            payment_url: sepayResponse.data.payment_url,
+            payment_method: 'sepay'
+          })
+        ]
+      );
+      
+      await connection.end();
+      
+      // Trả về payment URL cho client
+      res.json({
+        success: true,
+        message: 'Đã tạo yêu cầu thanh toán',
+        data: {
+          payment_url: sepayResponse.data.payment_url,
+          transaction_ref: transactionRef
+        }
+      });
+    } else {
+      await connection.end();
+      throw new Error('Không thể tạo yêu cầu thanh toán');
+    }
+  } catch (error) {
+    console.error('SePay deposit error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi kết nối đến cổng thanh toán, vui lòng thử lại sau'
+    });
+  }
+});
+
+// Webhook để nhận kết quả thanh toán từ SePay
+router.post('/sepay-webhook', async (req, res) => {
+  try {
+    const {
+      merchant_id,
+      transaction_id,
+      amount,
+      status,
+      signature
+    } = req.body;
+    
+    // Xác minh chữ ký
+    const dataToVerify = `${merchant_id}|${transaction_id}|${amount}|${status}`;
+    const expectedSignature = crypto
+      .createHmac('sha256', SEPAY_CONFIG.API_TOKEN)
+      .update(dataToVerify)
+      .digest('hex');
+    
+    if (signature !== expectedSignature) {
+      console.error('Invalid signature');
+      return res.status(400).json({ success: false, message: 'Invalid signature' });
+    }
+    
+    // Xác minh merchant ID
+    if (merchant_id !== SEPAY_CONFIG.MERCHANT_ID) {
+      console.error('Invalid merchant ID');
+      return res.status(400).json({ success: false, message: 'Invalid merchant ID' });
+    }
+    
+    const connection = await createConnection();
+    
+    // Tìm giao dịch trong cơ sở dữ liệu
+    const [transactions] = await connection.execute(
+      'SELECT * FROM transactions WHERE transaction_ref = ? AND transaction_type = ? AND status = ?',
+      [transaction_id, 'deposit', 'pending']
+    );
+    
+    if (transactions.length === 0) {
+      await connection.end();
+      return res.status(404).json({ success: false, message: 'Transaction not found' });
+    }
+    
+    const transaction = transactions[0];
+    
+    // Nếu giao dịch thành công, cập nhật số dư người dùng
+    if (status === 'successful') {
+      // Cập nhật trạng thái giao dịch
+      await connection.execute(
+        'UPDATE transactions SET status = ? WHERE transaction_id = ?',
+        ['completed', transaction.transaction_id]
+      );
+      
+      // Cập nhật số dư người dùng
+      await connection.execute(
+        'UPDATE users SET balance = balance + ? WHERE user_id = ?',
+        [parseFloat(amount), transaction.user_id]
+      );
+      
+      // Tạo thông báo cho người dùng
+      await connection.execute(
+        'INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, ?)',
+        [transaction.user_id, 'system', `Nạp tiền thành công: +${parseFloat(amount).toLocaleString('vi-VN')}đ`, false]
+      );
+    } else {
+      // Cập nhật trạng thái giao dịch thành thất bại
+      await connection.execute(
+        'UPDATE transactions SET status = ? WHERE transaction_id = ?',
+        ['failed', transaction.transaction_id]
+      );
+      
+      // Tạo thông báo cho người dùng
+      await connection.execute(
+        'INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, ?)',
+        [transaction.user_id, 'system', `Nạp tiền thất bại. Vui lòng liên hệ hỗ trợ.`, false]
+      );
+    }
+    
+    await connection.end();
+    
+    // Phản hồi thành công cho SePay
+    res.json({ success: true });
+  } catch (error) {
+    console.error('SePay webhook error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  }
+});
+
+// Trang kết quả thanh toán
+router.get('/check-payment-status/:transactionRef', authenticateToken, async (req, res) => {
+  try {
+    const { transactionRef } = req.params;
+    const userId = req.user.id;
+    
+    const connection = await createConnection();
+    
+    // Kiểm tra trạng thái giao dịch
+    const [transactions] = await connection.execute(
+      'SELECT * FROM transactions WHERE transaction_ref = ? AND user_id = ?',
+      [transactionRef, userId]
+    );
+    
+    await connection.end();
+    
+    if (transactions.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy giao dịch'
+      });
+    }
+    
+    const transaction = transactions[0];
+    
+    res.json({
+      success: true,
+      data: {
+        status: transaction.status,
+        amount: transaction.amount,
+        created_at: transaction.created_at
+      }
+    });
+  } catch (error) {
+    console.error('Check payment status error:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi máy chủ, vui lòng thử lại sau'
