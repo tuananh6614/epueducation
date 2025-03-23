@@ -7,9 +7,9 @@ import { toast } from "sonner";
 
 const PasswordForm = () => {
   const [formData, setFormData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -23,53 +23,67 @@ const PasswordForm = () => {
     
     // Validate passwords
     if (formData.newPassword !== formData.confirmPassword) {
-      toast.error('Mật khẩu mới không khớp với xác nhận mật khẩu');
+      toast.error("Mật khẩu không khớp", {
+        description: "Mật khẩu mới và xác nhận mật khẩu phải giống nhau"
+      });
       return;
     }
-
+    
     if (formData.newPassword.length < 6) {
-      toast.error('Mật khẩu mới phải có ít nhất 6 ký tự');
+      toast.warning("Mật khẩu quá ngắn", {
+        description: "Mật khẩu mới phải có ít nhất 6 ký tự"
+      });
       return;
     }
-
+    
     setIsSubmitting(true);
-
+    
     try {
       const token = localStorage.getItem('token');
       
       if (!token) {
         throw new Error('Bạn chưa đăng nhập');
       }
-
-      // Thay đổi từ /api/user/change-password thành /api/users/change-password
+      
+      // Show loading toast
+      toast.loading("Đang cập nhật mật khẩu...");
+      
       const response = await fetch('http://localhost:5000/api/users/change-password', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           currentPassword: formData.currentPassword,
           newPassword: formData.newPassword
         })
       });
-
+      
       const data = await response.json();
-
+      
+      // Dismiss loading toast
+      toast.dismiss();
+      
       if (data.success) {
-        toast.success('Đổi mật khẩu thành công');
-        // Reset form
+        // Reset form after successful password change
         setFormData({
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
+        
+        toast.success('Đổi mật khẩu thành công', {
+          description: "Mật khẩu của bạn đã được cập nhật"
         });
       } else {
         throw new Error(data.message || 'Đổi mật khẩu thất bại');
       }
     } catch (error: any) {
       console.error('Lỗi khi đổi mật khẩu:', error);
-      toast.error(error.message || 'Đổi mật khẩu thất bại');
+      toast.error('Đổi mật khẩu thất bại', {
+        description: error.message || 'Đã có lỗi xảy ra, vui lòng thử lại sau'
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -77,7 +91,7 @@ const PasswordForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="grid gap-4">
+      <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
           <Input
@@ -114,7 +128,7 @@ const PasswordForm = () => {
           />
         </div>
       </div>
-
+      
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? 'Đang cập nhật...' : 'Đổi mật khẩu'}
       </Button>

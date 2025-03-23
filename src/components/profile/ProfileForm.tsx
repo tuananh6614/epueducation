@@ -38,6 +38,11 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
         setPicturePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+      
+      // Show notification when file is selected
+      toast.info("Ảnh đại diện đã được chọn", {
+        description: "Nhấn Cập nhật thông tin để lưu thay đổi"
+      });
     }
   };
 
@@ -62,6 +67,9 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
         formDataToSend.append('profile_picture', profilePicture);
       }
 
+      // Show loading toast
+      toast.loading("Đang cập nhật thông tin...");
+
       const response = await fetch('http://localhost:5000/api/users/update', {
         method: 'PUT',
         headers: {
@@ -71,6 +79,9 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
       });
 
       const data = await response.json();
+
+      // Dismiss loading toast
+      toast.dismiss();
 
       if (data.success) {
         // Cập nhật state và local UI
@@ -84,13 +95,17 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
         // Reset trạng thái file đã chọn
         setProfilePicture(null);
         
-        toast.success('Cập nhật thông tin thành công');
+        toast.success('Cập nhật thông tin thành công', {
+          description: "Thông tin cá nhân của bạn đã được cập nhật"
+        });
       } else {
         throw new Error(data.message || 'Cập nhật thất bại');
       }
     } catch (error: any) {
       console.error('Lỗi khi cập nhật thông tin:', error);
-      toast.error(error.message || 'Cập nhật thông tin thất bại');
+      toast.error('Cập nhật thông tin thất bại', {
+        description: error.message || 'Đã có lỗi xảy ra, vui lòng thử lại sau'
+      });
     } finally {
       setIsSubmitting(false);
     }

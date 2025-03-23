@@ -1,9 +1,11 @@
 
+import { useState } from "react";
 import { Resource, Purchase } from "@/types";
-import { formatDistanceToNow } from "date-fns";
-import { vi } from "date-fns/locale";
-import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FilePlus, FileText, Download, ExternalLink } from "lucide-react";
+import { formatDistance } from "date-fns";
+import { vi } from "date-fns/locale";
 import { toast } from "sonner";
 
 interface ResourceListProps {
@@ -12,82 +14,129 @@ interface ResourceListProps {
 }
 
 const ResourceList = ({ resources, purchases }: ResourceListProps) => {
-  const downloadResource = async (resourceId: number, resourceLink: string) => {
-    try {
-      const token = localStorage.getItem('token');
-      
-      if (!token) {
-        toast.error('Bạn cần đăng nhập để tải tài liệu');
-        return;
-      }
-      
-      // Track download
-      await fetch(`http://localhost:5000/api/resources/${resourceId}/download`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      // Initiate download
-      window.open(resourceLink, '_blank');
-      
-    } catch (error) {
-      console.error('Lỗi khi tải tài liệu:', error);
-      toast.error('Không thể tải tài liệu');
-    }
-  };
-  
-  if (resources.length === 0) {
+  const [downloading, setDownloading] = useState<number | null>(null);
+
+  if (!resources.length) {
     return (
       <div className="text-center py-8">
-        <p className="text-gray-500">Bạn chưa mua tài liệu nào</p>
+        <FilePlus className="h-12 w-12 mx-auto text-gray-400" />
+        <h3 className="mt-4 text-lg font-medium">Bạn chưa mua tài liệu nào</h3>
+        <p className="mt-2 text-gray-500">Khám phá các tài liệu học tập chất lượng cao.</p>
+        <Button className="mt-4" onClick={() => window.location.href = '/resources'}>
+          Xem tài liệu
+        </Button>
       </div>
     );
   }
 
-  return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-semibold">Tài liệu đã mua ({resources.length})</h3>
+  const handleDownload = async (resource: Resource) => {
+    try {
+      setDownloading(resource.resource_id);
       
-      <div className="grid grid-cols-1 gap-4">
-        {resources.map((resource) => {
-          const purchase = purchases.find(p => p.resource_id === resource.resource_id);
-          return (
-            <div 
-              key={resource.resource_id} 
-              className="border rounded-md overflow-hidden flex flex-col md:flex-row"
-            >
-              <div className="w-full md:w-1/4 h-40 md:h-auto">
-                <img 
-                  src={resource.thumbnail || '/placeholder.svg'} 
-                  alt={resource.title} 
-                  className="h-full w-full object-cover"
-                />
-              </div>
-              
-              <div className="p-4 flex-1 flex flex-col">
-                <h4 className="text-lg font-semibold">{resource.title}</h4>
-                <p className="text-gray-500 text-sm mb-2">
-                  {resource.resource_type} • Mua {purchase ? formatDistanceToNow(new Date(purchase.purchase_date), { addSuffix: true, locale: vi }) : ''}
-                </p>
-                <p className="text-sm flex-grow">{resource.description}</p>
+      // Show loading toast
+      toast.loading(`Đang tải xuống ${resource.title}...`);
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Bạn chưa đăng nhập');
+      }
+
+      const response = await fetch(`http://localhost:5000/api/resources/download/${resource.resource_id}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Không thể tải tài liệu');
+      }
+
+      // Dismiss loading toast
+      toast.dismiss();
+
+      // Create a link and trigger download
+      const data = await response.blob();
+      const url = window.URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = resource.filename || resource.title + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Tải xuống thành công', {
+        description: `${resource.title} đã được tải xuống`
+      });
+    } catch (error: any) {
+      console.error('Lỗi khi tải tài liệu:', error);
+      toast.error('Tải xuống thất bại', {
+        description: error.message || 'Đã có lỗi xảy ra, vui lòng thử lại sau'
+      });
+    } finally {
+      setDownloading(null);
+    }
+  };
+
+  const getPurchaseDate = (resourceId: number) => {
+    const purchase = purchases.find(p => p.resource_id === resourceId);
+    return purchase?.purchase_date 
+      ? formatDistance(new Date(purchase.purchase_date), new Date(), { addSuffix: true, locale: vi })
+      : 'Không rõ';
+  };
+
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium mb-4">Tài liệu đã mua ({resources.length})</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {resources.map(resource => (
+          <Card key={resource.resource_id} className="h-full">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium line-clamp-2">{resource.title}</CardTitle>
+            </CardHeader>
+            
+            <CardContent className="pt-2">
+              <div className="space-y-4">
+                <div className="flex items-center text-sm text-gray-500">
+                  <FileText className="mr-2 h-4 w-4" />
+                  <span>{resource.description || 'Không có mô tả'}</span>
+                </div>
                 
-                <div className="mt-4 flex justify-end">
+                <div className="flex items-center text-sm text-gray-500">
+                  <span className="font-medium">Đã mua:</span>
+                  <span className="ml-2">{getPurchaseDate(resource.resource_id)}</span>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0 mt-2">
                   <Button 
-                    onClick={() => downloadResource(resource.resource_id, resource.resource_link)}
-                    variant="outline"
-                    className="flex items-center gap-2"
+                    onClick={() => handleDownload(resource)}
+                    disabled={downloading === resource.resource_id}
+                    className="flex-1"
                   >
-                    <Download size={16} />
-                    Tải xuống
+                    {downloading === resource.resource_id ? 'Đang tải...' : 'Tải xuống'}
+                    <Download className="ml-2 h-4 w-4" />
                   </Button>
+                  
+                  {resource.preview_link && (
+                    <Button 
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        window.open(resource.preview_link, '_blank');
+                        toast.info('Đã mở liên kết xem trước', {
+                          description: `Đang xem trước ${resource.title}`
+                        });
+                      }}
+                    >
+                      Xem trước
+                      <ExternalLink className="ml-2 h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
-            </div>
-          );
-        })}
+            </CardContent>
+          </Card>
+        ))}
       </div>
     </div>
   );
