@@ -8,7 +8,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { 
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { formatDistanceToNow } from 'date-fns';
 import { BlogPost } from '@/types';
 import SectionHeading from '@/components/ui/section-heading';
@@ -212,6 +217,25 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
   const getAuthorAvatar = () => {
     return post.author_avatar || `https://ui-avatars.com/api/?name=${getAuthorDisplayName()}&background=random`;
   };
+  
+  const getEmojiByReaction = (reaction: string | null) => {
+    if (!reaction) return null;
+    return emojiReactions.find(r => r.name === reaction)?.emoji || null;
+  };
+  
+  const getReactionName = (reaction: string | null) => {
+    if (!reaction) return "Thích";
+    
+    switch(reaction) {
+      case "heart": return "Yêu thích";
+      case "like": return "Thích";
+      case "haha": return "Haha";
+      case "wow": return "Wow";
+      case "sad": return "Buồn";
+      case "angry": return "Phẫn nộ";
+      default: return "Thích";
+    }
+  };
 
   return (
     <Card className="mb-6 overflow-hidden">
@@ -258,35 +282,33 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
         </div>
         
         <div className="flex justify-between py-1">
-          <Popover>
-            <PopoverTrigger asChild>
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
               <Button 
                 variant="ghost" 
                 className={`flex-1 ${liked ? 'text-primary' : ''}`} 
+                onClick={() => handleReaction(selectedReaction || 'like')}
               >
                 {selectedReaction ? (
-                  <span className="text-xl mr-2">{emojiReactions.find(r => r.name === selectedReaction)?.emoji || '❤️'}</span>
+                  <span className="text-xl mr-2">{getEmojiByReaction(selectedReaction)}</span>
                 ) : (
                   <ThumbsUp className={`mr-2 h-5 w-5 ${liked ? 'fill-primary' : ''}`} />
                 )}
-                Thích
+                {getReactionName(selectedReaction)}
               </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-2">
-              <div className="flex gap-2">
-                {emojiReactions.map((reaction) => (
-                  <button
-                    key={reaction.name}
-                    className="text-2xl hover:scale-125 transition-transform p-1"
-                    onClick={() => handleReaction(reaction.name)}
-                    title={reaction.name}
-                  >
-                    {reaction.emoji}
-                  </button>
-                ))}
-              </div>
-            </PopoverContent>
-          </Popover>
+            </ContextMenuTrigger>
+            <ContextMenuContent className="flex gap-2 p-2">
+              {emojiReactions.map((reaction) => (
+                <ContextMenuItem
+                  key={reaction.name}
+                  className="p-1 cursor-pointer text-2xl hover:scale-125 transition-transform focus:bg-transparent"
+                  onClick={() => handleReaction(reaction.name)}
+                >
+                  {reaction.emoji}
+                </ContextMenuItem>
+              ))}
+            </ContextMenuContent>
+          </ContextMenu>
           <Button 
             variant="ghost" 
             className="flex-1" 

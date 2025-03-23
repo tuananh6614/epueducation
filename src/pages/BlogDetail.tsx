@@ -15,6 +15,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { 
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
 // Emoji reactions
 const emojiReactions = [
@@ -42,6 +48,7 @@ const BlogDetail = () => {
     thumbnail: null
   });
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
+  const [showReactions, setShowReactions] = useState(false);
   
   const checkAuth = useAuthCheck();
   const { toast } = useToast();
@@ -284,6 +291,25 @@ const BlogDetail = () => {
     );
   }
   
+  const getEmojiByReaction = (reaction: string | null) => {
+    if (!reaction) return null;
+    return emojiReactions.find(r => r.name === reaction)?.emoji || null;
+  };
+  
+  const getReactionName = (reaction: string | null) => {
+    if (!reaction) return "Thích";
+    
+    switch(reaction) {
+      case "heart": return "Yêu thích";
+      case "like": return "Thích";
+      case "haha": return "Haha";
+      case "wow": return "Wow";
+      case "sad": return "Buồn";
+      case "angry": return "Phẫn nộ";
+      default: return "Thích";
+    }
+  };
+  
   return (
     <Layout>
       <div className="container mx-auto px-4 py-12">
@@ -326,32 +352,33 @@ const BlogDetail = () => {
           {/* Social Interactions */}
           <div className="flex items-center justify-between border-t border-b py-4 mb-8">
             <div className="flex items-center gap-6">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button className="flex items-center gap-2 hover:text-primary transition-colors">
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <button 
+                    className="flex items-center gap-2 hover:text-primary transition-colors"
+                    onClick={() => handleReaction(selectedReaction || 'like')}
+                  >
                     {selectedReaction ? (
-                      <span className="text-xl">{emojiReactions.find(r => r.name === selectedReaction)?.emoji || '❤️'}</span>
+                      <span className="text-xl">{getEmojiByReaction(selectedReaction)}</span>
                     ) : (
                       <Heart className={`h-5 w-5 ${liked ? 'fill-primary text-primary' : ''}`} />
                     )}
-                    <span>{post.likes_count || 0} Thích</span>
+                    <span>{getReactionName(selectedReaction)}</span>
+                    <span className="ml-1">({post.likes_count || 0})</span>
                   </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-2">
-                  <div className="flex gap-2">
-                    {emojiReactions.map((reaction) => (
-                      <button
-                        key={reaction.name}
-                        className="text-2xl hover:scale-125 transition-transform p-1"
-                        onClick={() => handleReaction(reaction.name)}
-                        title={reaction.name}
-                      >
-                        {reaction.emoji}
-                      </button>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="flex gap-2 p-2">
+                  {emojiReactions.map((reaction) => (
+                    <ContextMenuItem
+                      key={reaction.name}
+                      className="p-1 cursor-pointer text-2xl hover:scale-125 transition-transform focus:bg-transparent"
+                      onClick={() => handleReaction(reaction.name)}
+                    >
+                      {reaction.emoji}
+                    </ContextMenuItem>
+                  ))}
+                </ContextMenuContent>
+              </ContextMenu>
               <button className="flex items-center gap-2 hover:text-primary transition-colors">
                 <MessageSquare className="h-5 w-5" />
                 <span>{comments.length} Bình luận</span>
