@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -18,7 +17,6 @@ import { Label } from '@/components/ui/label';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 
-// Emoji reactions
 const emojiReactions = [
   { emoji: "❤️", name: "heart" },
   { emoji: "👍", name: "like" },
@@ -284,7 +282,6 @@ const BlogDetail = () => {
       const data = await response.json();
       
       if (data.success) {
-        // Remove the deleted comment from the comments array
         setComments(comments.filter(comment => comment.comment_id !== commentId));
         
         if (post) {
