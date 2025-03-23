@@ -31,7 +31,7 @@ const AdminDeposits = () => {
 
   useEffect(() => {
     // Check if user is admin
-    if (!checkAuth('xem trang quản trị', true)) {
+    if (!checkAuth('xem trang quản trị')) {
       navigate('/');
       return;
     }
