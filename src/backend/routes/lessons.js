@@ -25,11 +25,19 @@ router.get('/:courseId/lessons/:lessonId', async (req, res) => {
       });
     }
     
+    // Handle different video field names
+    const lesson = lessons[0];
+    
+    // If video_url is present but video_link is not, add video_link field for consistency
+    if (lesson.video_url && !lesson.video_link) {
+      lesson.video_link = lesson.video_url;
+    }
+    
     await connection.end();
     
     res.json({
       success: true,
-      data: lessons[0]
+      data: lesson
     });
   } catch (error) {
     console.error('Get lesson error:', error);

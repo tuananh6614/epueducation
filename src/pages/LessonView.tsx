@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -63,7 +62,6 @@ const LessonView = () => {
   const [isEnrolled, setIsEnrolled] = useState(false);
   
   useEffect(() => {
-    // Check if the user is authenticated and enrolled in the course
     if (!checkAuth('xem bài học này')) {
       return;
     }
@@ -98,7 +96,6 @@ const LessonView = () => {
   const isLoading = isLoadingLesson || isLoadingCourse;
   const isError = isErrorLesson || isErrorCourse;
   
-  // Find the previous and next lessons
   const currentLessonIndex = course?.lessons?.findIndex((l: Lesson) => 
     l.lesson_id === Number(lessonId)
   );
@@ -136,7 +133,6 @@ const LessonView = () => {
     );
   }
   
-  // Check if the user can access the lesson
   const canAccess = isEnrolled || lesson.is_free;
   
   if (!canAccess) {
@@ -173,7 +169,7 @@ const LessonView = () => {
                   <BookOpen className="h-4 w-4" />
                   Nội dung
                 </TabsTrigger>
-                {lesson.video_link && (
+                {(lesson.video_link || lesson.video_url) && (
                   <TabsTrigger value="video" className="flex items-center gap-2">
                     <Video className="h-4 w-4" />
                     Video
@@ -194,12 +190,12 @@ const LessonView = () => {
               </TabsContent>
               
               <TabsContent value="video" className="animate-fade-in">
-                {lesson.video_link ? (
+                {(lesson.video_link || lesson.video_url) ? (
                   <div className="aspect-video rounded-lg overflow-hidden bg-black">
                     <iframe
                       width="100%"
                       height="100%"
-                      src={lesson.video_link}
+                      src={lesson.video_link || lesson.video_url}
                       title={lesson.title}
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
