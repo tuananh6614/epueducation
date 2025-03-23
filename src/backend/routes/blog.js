@@ -63,7 +63,7 @@ router.get('/posts/:id', async (req, res) => {
       FROM comments c
       JOIN users u ON c.user_id = u.user_id
       WHERE c.post_id = ?
-      ORDER BY c.created_at
+      ORDER BY c.created_at DESC
     `, [id]);
     
     // Get likes count
@@ -127,6 +127,74 @@ router.post('/posts', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Create post error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Update post
+router.put('/posts/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, thumbnail } = req.body;
+    
+    if (!title || !content) {
+      return res.status(400).json({
+        success: false,
+        message: 'Tiêu đề và nội dung là bắt buộc'
+      });
+    }
+    
+    const connection = await createConnection();
+    
+    // Check if user is the author of the post
+    const [posts] = await connection.execute(
+      'SELECT * FROM blog_posts WHERE post_id = ?', 
+      [id]
+    );
+    
+    if (posts.length === 0) {
+      await connection.end();
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy bài viết'
+      });
+    }
+    
+    if (posts[0].author_id !== req.user.id) {
+      await connection.end();
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền chỉnh sửa bài viết này'
+      });
+    }
+    
+    // Update post
+    await connection.execute(`
+      UPDATE blog_posts
+      SET title = ?, content = ?, thumbnail = ?, updated_at = NOW()
+      WHERE post_id = ?
+    `, [title, content, thumbnail, id]);
+    
+    // Get updated post
+    const [updatedPost] = await connection.execute(`
+      SELECT p.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
+      FROM blog_posts p
+      JOIN users u ON p.author_id = u.user_id
+      WHERE p.post_id = ?
+    `, [id]);
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      message: 'Cập nhật bài viết thành công',
+      data: updatedPost[0]
+    });
+  } catch (error) {
+    console.error('Update post error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Lỗi máy chủ, vui lòng thử lại sau' 

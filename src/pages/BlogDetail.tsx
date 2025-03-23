@@ -1,16 +1,30 @@
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageSquare, Share } from 'lucide-react';
+import { Heart, MessageSquare, Pencil, Smile } from 'lucide-react';
 import { BlogPost, Comment } from '@/types';
 import { useAuthCheck } from '@/utils/authCheck';
 import { useToast } from '@/hooks/use-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+// Emoji reactions
+const emojiReactions = [
+  { emoji: "❤️", name: "heart" },
+  { emoji: "👍", name: "like" },
+  { emoji: "😆", name: "haha" },
+  { emoji: "😮", name: "wow" },
+  { emoji: "😢", name: "sad" },
+  { emoji: "😡", name: "angry" }
+];
 
 const BlogDetail = () => {
   const { postId } = useParams<{ postId: string }>();
@@ -20,8 +34,18 @@ const BlogDetail = () => {
   const [liked, setLiked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthor, setIsAuthor] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editedPost, setEditedPost] = useState<{title: string, content: string, thumbnail: string | null}>({
+    title: '',
+    content: '',
+    thumbnail: null
+  });
+  const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
+  
   const checkAuth = useAuthCheck();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetchPostDetails = async () => {
@@ -33,6 +57,21 @@ const BlogDetail = () => {
         if (data.success) {
           setPost(data.data);
           setComments(data.data.comments || []);
+          
+          // Check if current user is the author
+          const userString = localStorage.getItem('user');
+          if (userString) {
+            const user = JSON.parse(userString);
+            const isPostAuthor = user.id === data.data.author_id;
+            setIsAuthor(isPostAuthor);
+          }
+          
+          // Set initial edit form values
+          setEditedPost({
+            title: data.data.title,
+            content: data.data.content,
+            thumbnail: data.data.thumbnail
+          });
         } else {
           setError('Không tìm thấy bài viết hoặc đã có lỗi xảy ra');
         }
@@ -58,6 +97,7 @@ const BlogDetail = () => {
         const data = await response.json();
         if (data.success) {
           setLiked(data.liked);
+          setSelectedReaction(data.reaction || null);
         }
       } catch (error) {
         console.error('Error checking like status:', error);
@@ -68,7 +108,7 @@ const BlogDetail = () => {
     checkLikeStatus();
   }, [postId]);
   
-  const handleLike = async () => {
+  const handleReaction = async (reaction: string) => {
     if (checkAuth('thích bài viết')) {
       try {
         const token = localStorage.getItem('token');
@@ -79,13 +119,18 @@ const BlogDetail = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ post_id: Number(postId) })
+          body: JSON.stringify({ 
+            post_id: Number(postId),
+            reaction: reaction 
+          })
         });
         
         const data = await response.json();
         
         if (data.success) {
           setLiked(data.liked);
+          setSelectedReaction(data.liked ? reaction : null);
+          
           // Update likes count
           if (post) {
             setPost({
@@ -98,11 +143,11 @@ const BlogDetail = () => {
           
           toast({
             title: "Thành công",
-            description: data.liked ? "Đã thích bài viết" : "Đã bỏ thích bài viết",
+            description: data.liked ? `Đã ${reaction === 'like' ? 'thích' : 'bày tỏ cảm xúc'} bài viết` : "Đã bỏ thích bài viết",
           });
         }
       } catch (error) {
-        console.error('Error liking post:', error);
+        console.error('Error reacting to post:', error);
         toast({
           title: "Lỗi",
           description: "Không thể thích bài viết, vui lòng thử lại sau",
@@ -112,13 +157,52 @@ const BlogDetail = () => {
     }
   };
   
-  const handleShare = () => {
-    if (checkAuth('chia sẻ bài viết')) {
-      // Share logic would go here
-      navigator.clipboard.writeText(window.location.href);
+  const handleEditPost = async () => {
+    if (!checkAuth('chỉnh sửa bài viết')) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`http://localhost:5000/api/blog/posts/${postId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(editedPost)
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setPost({
+          ...post!,
+          title: editedPost.title,
+          content: editedPost.content,
+          thumbnail: editedPost.thumbnail
+        });
+        
+        setIsEditDialogOpen(false);
+        
+        toast({
+          title: "Thành công",
+          description: "Bài viết đã được cập nhật",
+        });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: data.message || "Không thể cập nhật bài viết",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating post:', error);
       toast({
-        title: "Đã sao chép liên kết",
-        description: "Liên kết bài viết đã được sao chép vào clipboard",
+        title: "Lỗi",
+        description: "Không thể cập nhật bài viết, vui lòng thử lại sau",
+        variant: "destructive",
       });
     }
   };
@@ -242,25 +326,88 @@ const BlogDetail = () => {
           {/* Social Interactions */}
           <div className="flex items-center justify-between border-t border-b py-4 mb-8">
             <div className="flex items-center gap-6">
-              <button 
-                onClick={handleLike}
-                className="flex items-center gap-2 hover:text-primary transition-colors"
-              >
-                <Heart className={`h-5 w-5 ${liked ? 'fill-primary text-primary' : ''}`} />
-                <span>{post.likes_count || 0} Thích</span>
-              </button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="flex items-center gap-2 hover:text-primary transition-colors">
+                    {selectedReaction ? (
+                      <span className="text-xl">{emojiReactions.find(r => r.name === selectedReaction)?.emoji || '❤️'}</span>
+                    ) : (
+                      <Heart className={`h-5 w-5 ${liked ? 'fill-primary text-primary' : ''}`} />
+                    )}
+                    <span>{post.likes_count || 0} Thích</span>
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2">
+                  <div className="flex gap-2">
+                    {emojiReactions.map((reaction) => (
+                      <button
+                        key={reaction.name}
+                        className="text-2xl hover:scale-125 transition-transform p-1"
+                        onClick={() => handleReaction(reaction.name)}
+                        title={reaction.name}
+                      >
+                        {reaction.emoji}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
               <button className="flex items-center gap-2 hover:text-primary transition-colors">
                 <MessageSquare className="h-5 w-5" />
                 <span>{comments.length} Bình luận</span>
               </button>
             </div>
-            <button 
-              onClick={handleShare}
-              className="flex items-center gap-2 hover:text-primary transition-colors"
-            >
-              <Share className="h-5 w-5" />
-              <span>Chia sẻ</span>
-            </button>
+            
+            {isAuthor && (
+              <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    className="flex items-center gap-2 hover:text-primary transition-colors"
+                  >
+                    <Pencil className="h-5 w-5" />
+                    <span>Chỉnh sửa</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle className="text-xl">Chỉnh sửa bài viết</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-title">Tiêu đề</Label>
+                      <Input 
+                        id="edit-title" 
+                        value={editedPost.title}
+                        onChange={(e) => setEditedPost({...editedPost, title: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-content">Nội dung</Label>
+                      <Textarea 
+                        id="edit-content" 
+                        className="min-h-32"
+                        value={editedPost.content}
+                        onChange={(e) => setEditedPost({...editedPost, content: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-thumbnail">Link ảnh (không bắt buộc)</Label>
+                      <Input 
+                        id="edit-thumbnail" 
+                        placeholder="https://example.com/image.jpg"
+                        value={editedPost.thumbnail || ''}
+                        onChange={(e) => setEditedPost({...editedPost, thumbnail: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Hủy</Button>
+                    <Button type="button" onClick={handleEditPost}>Cập nhật</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
           
           {/* Comments Section */}
@@ -274,6 +421,12 @@ const BlogDetail = () => {
                 className="mb-3 min-h-24"
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleCommentSubmit(e);
+                  }
+                }}
               />
               <Button type="submit">Đăng bình luận</Button>
             </form>

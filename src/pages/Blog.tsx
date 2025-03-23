@@ -1,32 +1,49 @@
-
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatDistanceToNow } from 'date-fns';
 import { BlogPost } from '@/types';
 import SectionHeading from '@/components/ui/section-heading';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthCheck } from '@/utils/authCheck';
-import { ThumbsUp, MessageCircle, Share, Image, SmilePlus } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Pencil, Image, SmilePlus } from 'lucide-react';
 
-// Separate component for the post card
+const emojiReactions = [
+  { emoji: "❤️", name: "heart" },
+  { emoji: "👍", name: "like" },
+  { emoji: "😆", name: "haha" },
+  { emoji: "😮", name: "wow" },
+  { emoji: "😢", name: "sad" },
+  { emoji: "😡", name: "angry" }
+];
+
 const BlogPostCard = ({ post }: { post: BlogPost }) => {
   const [liked, setLiked] = useState(false);
+  const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
   const [commentOpen, setCommentOpen] = useState(false);
   const [comment, setComment] = useState('');
   const [comments, setComments] = useState<{id: number, text: string, author: string, author_fullname: string, author_avatar: string, created_at: string}[]>([]);
+  const [isAuthor, setIsAuthor] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editedPost, setEditedPost] = useState({
+    title: post.title,
+    content: post.content,
+    thumbnail: post.thumbnail || ''
+  });
+  
   const { toast } = useToast();
   const checkAuth = useAuthCheck();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user has liked this post
     const checkLikeStatus = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -41,16 +58,27 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
         const data = await response.json();
         if (data.success) {
           setLiked(data.liked);
+          setSelectedReaction(data.reaction || null);
         }
       } catch (error) {
         console.error('Error checking like status:', error);
       }
     };
     
+    const checkAuthorStatus = () => {
+      const userString = localStorage.getItem('user');
+      if (userString) {
+        const user = JSON.parse(userString);
+        const isPostAuthor = user.id === post.author_id;
+        setIsAuthor(isPostAuthor);
+      }
+    };
+    
     checkLikeStatus();
-  }, [post.post_id]);
+    checkAuthorStatus();
+  }, [post.post_id, post.author_id]);
 
-  const handleLike = async () => {
+  const handleReaction = async (reaction: string) => {
     if (!checkAuth('thích bài viết')) return;
     
     try {
@@ -62,16 +90,20 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ post_id: post.post_id })
+        body: JSON.stringify({ 
+          post_id: post.post_id,
+          reaction: reaction
+        })
       });
       
       const data = await response.json();
       
       if (data.success) {
         setLiked(data.liked);
+        setSelectedReaction(data.liked ? reaction : null);
         toast({
           title: "Thành công",
-          description: data.liked ? "Đã thích bài viết" : "Đã bỏ thích bài viết",
+          description: data.liked ? `Đã ${reaction === 'like' ? 'thích' : 'bày tỏ cảm xúc'} bài viết` : "Đã bỏ thích bài viết",
         });
       }
     } catch (error) {
@@ -124,20 +156,65 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
       });
     }
   };
+  
+  const handleEditPost = async () => {
+    if (!checkAuth('chỉnh sửa bài viết')) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`http://localhost:5000/api/blog/posts/${post.post_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          title: editedPost.title,
+          content: editedPost.content,
+          thumbnail: editedPost.thumbnail || null
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        toast({
+          title: "Thành công",
+          description: "Bài viết đã được cập nhật",
+        });
+        setIsEditDialogOpen(false);
+        
+        window.location.reload();
+      } else {
+        toast({
+          title: "Lỗi",
+          description: data.message || "Không thể cập nhật bài viết",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error updating post:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể cập nhật bài viết, vui lòng thử lại sau",
+        variant: "destructive",
+      });
+    }
+  };
 
-  // Function to get author display name
   const getAuthorDisplayName = () => {
     return post.author_fullname || post.author;
   };
 
-  // Function to get author avatar
   const getAuthorAvatar = () => {
     return post.author_avatar || `https://ui-avatars.com/api/?name=${getAuthorDisplayName()}&background=random`;
   };
 
   return (
     <Card className="mb-6 overflow-hidden">
-      {/* Post Header */}
       <CardContent className="p-4 pb-2 border-b">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10">
@@ -153,7 +230,6 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
         </div>
       </CardContent>
       
-      {/* Post Content */}
       <CardContent className="p-4 pt-3">
         <Link to={`/blog/${post.post_id}`}>
           <h3 className="text-lg font-medium mb-2 hover:text-primary transition-colors">{post.title}</h3>
@@ -172,7 +248,6 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
           </div>
         )}
         
-        {/* Post Stats */}
         <div className="flex justify-between text-sm text-muted-foreground border-t border-b py-2 mb-2">
           <div>
             {post.likes_count || 0} lượt thích
@@ -182,16 +257,36 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
           </div>
         </div>
         
-        {/* Action Buttons */}
         <div className="flex justify-between py-1">
-          <Button 
-            variant="ghost" 
-            className={`flex-1 ${liked ? 'text-primary' : ''}`} 
-            onClick={handleLike}
-          >
-            <ThumbsUp className={`mr-2 h-5 w-5 ${liked ? 'fill-primary' : ''}`} />
-            Thích
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className={`flex-1 ${liked ? 'text-primary' : ''}`} 
+              >
+                {selectedReaction ? (
+                  <span className="text-xl mr-2">{emojiReactions.find(r => r.name === selectedReaction)?.emoji || '❤️'}</span>
+                ) : (
+                  <ThumbsUp className={`mr-2 h-5 w-5 ${liked ? 'fill-primary' : ''}`} />
+                )}
+                Thích
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-2">
+              <div className="flex gap-2">
+                {emojiReactions.map((reaction) => (
+                  <button
+                    key={reaction.name}
+                    className="text-2xl hover:scale-125 transition-transform p-1"
+                    onClick={() => handleReaction(reaction.name)}
+                    title={reaction.name}
+                  >
+                    {reaction.emoji}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button 
             variant="ghost" 
             className="flex-1" 
@@ -200,13 +295,56 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
             <MessageCircle className="mr-2 h-5 w-5" />
             Bình luận
           </Button>
-          <Button variant="ghost" className="flex-1">
-            <Share className="mr-2 h-5 w-5" />
-            Chia sẻ
-          </Button>
+          
+          {isAuthor ? (
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="ghost" className="flex-1">
+                  <Pencil className="mr-2 h-5 w-5" />
+                  Chỉnh sửa
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle className="text-xl">Chỉnh sửa bài viết</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-title">Tiêu đề</Label>
+                    <Input 
+                      id="edit-title" 
+                      value={editedPost.title}
+                      onChange={(e) => setEditedPost({...editedPost, title: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-content">Nội dung</Label>
+                    <Textarea 
+                      id="edit-content" 
+                      className="min-h-32"
+                      value={editedPost.content}
+                      onChange={(e) => setEditedPost({...editedPost, content: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-thumbnail">Link ảnh (không bắt buộc)</Label>
+                    <Input 
+                      id="edit-thumbnail" 
+                      placeholder="https://example.com/image.jpg"
+                      value={editedPost.thumbnail || ''}
+                      onChange={(e) => setEditedPost({...editedPost, thumbnail: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Hủy</Button>
+                  <Button type="button" onClick={handleEditPost}>Cập nhật</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          ) : null}
         </div>
         
-        {/* Comments Section */}
         {commentOpen && (
           <div className="mt-3 pt-3 border-t">
             {comments.length > 0 && (
@@ -237,6 +375,12 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
                   placeholder="Viết bình luận..."
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleComment(e);
+                    }
+                  }}
                 />
                 <button 
                   type="submit" 
@@ -254,7 +398,6 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
   );
 };
 
-// Component to display current user's avatar
 const UserAvatar = () => {
   const [userData, setUserData] = useState<{
     username: string;
@@ -289,7 +432,6 @@ const UserAvatar = () => {
   );
 };
 
-// Separate component for the post creation form
 const QuickPostForm = ({ onPostCreate }: { onPostCreate: (post: BlogPost) => void }) => {
   const [postContent, setPostContent] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -464,7 +606,6 @@ const QuickPostForm = ({ onPostCreate }: { onPostCreate: (post: BlogPost) => voi
         </CardContent>
       </Card>
       
-      {/* Create Post Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
@@ -515,7 +656,6 @@ const Blog = () => {
   const { toast } = useToast();
   
   useEffect(() => {
-    // Fetch posts from API
     const fetchPosts = async () => {
       try {
         setLoading(true);
@@ -558,12 +698,10 @@ const Blog = () => {
           subtitle="Chia sẻ kiến thức và trải nghiệm học tập"
         />
         
-        {/* Quick Post Form */}
         <div className="mt-8">
           <QuickPostForm onPostCreate={handleAddPost} />
         </div>
         
-        {/* Blog Posts List */}
         <div className="mt-6">
           {loading ? (
             <div className="text-center py-8">
