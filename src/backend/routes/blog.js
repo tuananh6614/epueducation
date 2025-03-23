@@ -217,6 +217,20 @@ router.post('/comments', authenticateToken, async (req, res) => {
     const connection = await createConnection();
     
     try {
+      // First, verify the post exists in blog_posts table
+      const [postCheck] = await connection.execute(
+        'SELECT post_id FROM blog_posts WHERE post_id = ?', 
+        [post_id]
+      );
+      
+      if (postCheck.length === 0) {
+        await connection.end();
+        return res.status(404).json({
+          success: false,
+          message: 'Bài viết không tồn tại'
+        });
+      }
+      
       // Add comment
       const [result] = await connection.execute(`
         INSERT INTO comments (content, user_id, post_id)
