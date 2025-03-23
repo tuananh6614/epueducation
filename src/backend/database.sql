@@ -1,7 +1,6 @@
-
 -- Tạo cơ sở dữ liệu
-CREATE DATABASE IF NOT EXISTS learningplatform;
-USE learningplatform;
+CREATE DATABASE IF NOT EXISTS learning;
+USE learning;
 
 -- Tạo bảng Users
 CREATE TABLE IF NOT EXISTS users (
@@ -224,4 +223,3 @@ INSERT INTO categories (name, description) VALUES
 INSERT INTO users (username, email, password, full_name, balance) VALUES
 ('admin', 'admin@example.com', '$2a$10$JJrL01rGRrKsUo0aKhkK5O3zXdL5LI4rq/0n4ZX/NJpA3V.IQJTl.', 'Quản trị viên', 1000000);
 -- Mật khẩu: admin123
-

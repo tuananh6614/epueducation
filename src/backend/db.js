@@ -9,7 +9,7 @@ const createConnection = async () => {
       host: 'localhost',
       user: 'root',
       password: '',
-      database: 'learningplatform'
+      database: 'learning'
     });
   } catch (error) {
     // If connection fails, create the database
@@ -22,7 +22,7 @@ const createConnection = async () => {
       password: ''
     });
     
-    await connection.query('CREATE DATABASE IF NOT EXISTS learningplatform');
+    await connection.query('CREATE DATABASE IF NOT EXISTS learning');
     console.log('Database created or already exists');
     
     // Now connect to the database
@@ -30,9 +30,10 @@ const createConnection = async () => {
       host: 'localhost',
       user: 'root',
       password: '',
-      database: 'learningplatform'
+      database: 'learning'
     });
   }
 };
 
 module.exports = { createConnection };
+
