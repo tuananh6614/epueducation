@@ -5,7 +5,7 @@ import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { Check, X } from 'lucide-react';
+import { Check, X, CreditCard, Clock, FileText } from 'lucide-react';
 import SectionHeading from '@/components/ui/section-heading';
 import { useAuthCheck } from '@/utils/authCheck';
 
@@ -18,6 +18,9 @@ type PendingDeposit = {
   amount: string;
   transaction_ref: string;
   metadata: string;
+  bank_name: string;
+  account_number: string;
+  account_name: string;
   created_at: string;
 };
 
@@ -135,13 +138,25 @@ const AdminDeposits = () => {
                 console.error('Metadata parse error:', error);
               }
               
+              // Determine payment method
+              let paymentMethod = 'Chuyển khoản ngân hàng';
+              let paymentIcon = <CreditCard className="h-5 w-5 text-blue-500" />;
+              
+              if ((metadata as any).payment_method === 'sepay') {
+                paymentMethod = 'SePay';
+                paymentIcon = <img src="/lovable-uploads/01d56a2e-cadd-48c2-a3c2-eb1f398ddf82.png" alt="SePay" className="h-5 w-5" />;
+              }
+              
               return (
                 <Card key={deposit.transaction_id} className="overflow-hidden">
                   <CardHeader className="bg-gray-50">
                     <CardTitle className="flex justify-between items-center">
-                      <span>Giao dịch #{deposit.transaction_ref}</span>
-                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">
-                        Đang chờ
+                      <div className="flex items-center gap-2">
+                        {paymentIcon}
+                        <span>GD #{deposit.transaction_ref}</span>
+                      </div>
+                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium flex items-center">
+                        <Clock className="h-3 w-3 mr-1" /> Đang chờ
                       </span>
                     </CardTitle>
                   </CardHeader>
@@ -154,18 +169,45 @@ const AdminDeposits = () => {
                       </div>
                       
                       <div>
+                        <p className="text-sm text-muted-foreground">Phương thức thanh toán</p>
+                        <p className="font-medium flex items-center gap-1">
+                          {paymentIcon}
+                          <span>{paymentMethod}</span>
+                        </p>
+                      </div>
+                      
+                      <div>
                         <p className="text-sm text-muted-foreground">Số tiền</p>
                         <p className="font-medium text-lg">{parseFloat(deposit.amount).toLocaleString('vi-VN')}đ</p>
                       </div>
                       
-                      <div>
-                        <p className="text-sm text-muted-foreground">Thông tin chuyển khoản</p>
-                        <div className="bg-gray-50 p-3 rounded text-sm">
-                          <p><span className="font-medium">Ngân hàng:</span> {(metadata as any).bank_name || 'N/A'}</p>
-                          <p><span className="font-medium">STK:</span> {(metadata as any).account_number || 'N/A'}</p>
-                          <p><span className="font-medium">Chủ TK:</span> {(metadata as any).account_name || 'N/A'}</p>
+                      {deposit.bank_name && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Thông tin chuyển khoản</p>
+                          <div className="bg-gray-50 p-3 rounded text-sm">
+                            <p><span className="font-medium">Ngân hàng:</span> {deposit.bank_name}</p>
+                            <p><span className="font-medium">STK:</span> {deposit.account_number}</p>
+                            <p><span className="font-medium">Chủ TK:</span> {deposit.account_name}</p>
+                          </div>
                         </div>
-                      </div>
+                      )}
+                      
+                      {(metadata as any).payment_url && (
+                        <div>
+                          <p className="text-sm text-muted-foreground">Thông tin thanh toán SePay</p>
+                          <div className="bg-gray-50 p-3 rounded text-sm">
+                            <a 
+                              href={(metadata as any).payment_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center text-blue-600 hover:underline"
+                            >
+                              <FileText className="h-4 w-4 mr-1" />
+                              Xem thông tin thanh toán
+                            </a>
+                          </div>
+                        </div>
+                      )}
                       
                       <div>
                         <p className="text-sm text-muted-foreground">Thời gian</p>

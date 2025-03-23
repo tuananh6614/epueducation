@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -431,7 +432,7 @@ const Resources = () => {
       </div>
 
       <Dialog open={openDepositDialog} onOpenChange={setOpenDepositDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b pb-4">
             <DialogTitle className="text-xl font-bold">Nạp tiền vào tài khoản</DialogTitle>
           </DialogHeader>
@@ -486,7 +487,7 @@ const Resources = () => {
                 
                 <div className="mb-4">
                   <div className="grid grid-cols-4 gap-2 mb-3">
-                    {paymentAmounts.slice(0, 8).map(amount => (
+                    {paymentAmounts.map(amount => (
                       <button
                         key={amount.value}
                         type="button"
@@ -520,14 +521,6 @@ const Resources = () => {
                     <div className="font-medium mb-1">Tham khảo hướng dẫn của ngân hàng:</div>
                     <div className="flex gap-2 items-center">
                       <span className="text-emerald-600 hover:underline cursor-pointer">VIETINBANK</span>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <div className="font-medium mb-1">Hoặc sử dụng quét QR của các ví điện tử:</div>
-                    <div className="flex gap-3">
-                      <img src="https://cdn.zalopay.vn/logo/zalopay-logo.png" alt="ZaloPay" className="h-8" />
-                      <img src="/lovable-uploads/b97148b3-3f98-4ed3-a28d-e2764daa882c.png" alt="Momo" className="h-8" />
                     </div>
                   </div>
                 </div>
@@ -579,8 +572,8 @@ const Resources = () => {
                       </div>
                     </div>
                     <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
-                    <div className="flex justify-between font-mono bg-white p-2 rounded border border-yellow-200 text-sm overflow-auto max-h-24">
-                      <div className="whitespace-normal break-all mr-2">{getTransferContent()}</div>
+                    <div className="flex items-start justify-between font-mono bg-white p-2 rounded border border-yellow-200 text-sm overflow-auto max-h-24">
+                      <div className="whitespace-normal break-all mr-2 overflow-y-auto">{getTransferContent()}</div>
                       <Button 
                         variant="ghost" 
                         className="h-6 w-6 p-0 ml-1 flex-shrink-0" 
@@ -593,17 +586,25 @@ const Resources = () => {
                   
                   <div className="flex flex-col items-center justify-center">
                     <div className="bg-white p-4 rounded-md border border-gray-200 mb-3">
-                      <QrCode className="h-12 w-12 mx-auto mb-3 text-emerald-600" />
                       <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=vietinbank:${bankInfo.accountNumber}/${getTransferContent()}`} 
+                        src="/lovable-uploads/6e0fdb03-eae4-4495-915b-7df9d25fb532.png" 
                         alt="QR Code"
-                        className="w-32 h-32 mx-auto"
+                        className="w-full h-auto mx-auto"
                       />
                     </div>
                     <p className="text-xs text-center text-gray-500">
                       Quét mã QR để chuyển khoản nhanh chóng
                     </p>
                   </div>
+                </div>
+                
+                <div className="bg-blue-50 p-3 rounded border border-blue-200 mt-4 mb-4">
+                  <h4 className="font-medium text-blue-800 mb-1">Lưu ý quan trọng:</h4>
+                  <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+                    <li>Vui lòng ghi đúng nội dung chuyển khoản để hệ thống có thể xác nhận giao dịch</li>
+                    <li>Sau khi chuyển khoản, tiền sẽ được cộng vào tài khoản trong vòng 5-10 phút</li>
+                    <li>Nếu sau 30 phút chưa nhận được tiền, vui lòng liên hệ admin qua Zalo: 0987654321</li>
+                  </ul>
                 </div>
                 
                 <Button 
@@ -624,11 +625,10 @@ const Resources = () => {
               <div className="mt-6 text-center">
                 <h3 className="text-lg font-medium mb-4">Quét mã QR để nạp tiền</h3>
                 <div className="bg-white p-6 rounded-md border border-gray-200 mx-auto max-w-xs mb-6">
-                  <QrCode className="h-16 w-16 mx-auto mb-3 text-emerald-600" />
                   <img 
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=vietinbank:${bankInfo.accountNumber}/${getTransferContent()}`} 
+                    src="/lovable-uploads/01d56a2e-cadd-48c2-a3c2-eb1f398ddf82.png" 
                     alt="QR Code"
-                    className="w-48 h-48 mx-auto mb-4"
+                    className="w-48 h-auto mx-auto mb-4"
                   />
                   <div className="text-sm text-gray-600">
                     <p className="font-medium">Quét mã QR bằng ứng dụng ngân hàng</p>
@@ -641,7 +641,7 @@ const Resources = () => {
                 </div>
                 
                 <div className="grid grid-cols-4 gap-2 mb-6">
-                  {paymentAmounts.slice(0, 8).map(amount => (
+                  {paymentAmounts.map(amount => (
                     <button
                       key={amount.value}
                       type="button"
@@ -655,6 +655,17 @@ const Resources = () => {
                       {amount.label}
                     </button>
                   ))}
+                </div>
+                
+                <div className="bg-blue-50 p-3 rounded border border-blue-200 mt-4 mb-6 text-left">
+                  <h4 className="font-medium text-blue-800 mb-1">Hướng dẫn thanh toán QR:</h4>
+                  <ol className="list-decimal list-inside text-sm text-blue-700 space-y-1">
+                    <li>Mở ứng dụng ngân hàng hoặc ví điện tử trên điện thoại</li>
+                    <li>Chọn chức năng quét mã QR</li>
+                    <li>Quét mã QR ở trên</li>
+                    <li>Kiểm tra thông tin và xác nhận thanh toán</li>
+                    <li>Tiền sẽ được cộng vào tài khoản của bạn sau khi giao dịch thành công</li>
+                  </ol>
                 </div>
                 
                 <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6" onClick={() => setDepositTab('bank')}>
@@ -689,8 +700,8 @@ const Resources = () => {
                   <p className="mt-1">Nội dung chuyển khoản: <span className="font-mono font-medium">{getTransferContent()}</span></p>
                 </div>
                 
-                <div className="grid grid-cols-4 gap-2 mb-6">
-                  {paymentAmounts.slice(0, 8).map(amount => (
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {paymentAmounts.map(amount => (
                     <button
                       key={amount.value}
                       type="button"
@@ -704,6 +715,18 @@ const Resources = () => {
                       {amount.label}
                     </button>
                   ))}
+                </div>
+                
+                <div className="bg-purple-50 p-3 rounded border border-purple-200 mt-4 mb-6 text-left">
+                  <h4 className="font-medium text-purple-800 mb-1">Hướng dẫn thanh toán qua Momo:</h4>
+                  <ol className="list-decimal list-inside text-sm text-purple-700 space-y-1">
+                    <li>Mở ứng dụng Momo trên điện thoại</li>
+                    <li>Chọn "Chuyển tiền"</li>
+                    <li>Nhập số điện thoại hoặc quét mã QR</li>
+                    <li>Nhập số tiền bạn muốn nạp</li>
+                    <li>Nhập đúng nội dung chuyển khoản: {getTransferContent()}</li>
+                    <li>Xác nhận và hoàn tất giao dịch</li>
+                  </ol>
                 </div>
                 
                 <Button 
@@ -733,7 +756,7 @@ const Resources = () => {
                         <FormItem>
                           <FormLabel>Số tiền (VNĐ)</FormLabel>
                           <div className="grid grid-cols-4 gap-2 mb-3">
-                            {paymentAmounts.slice(0, 8).map(amount => (
+                            {paymentAmounts.map(amount => (
                               <button
                                 key={amount.value}
                                 type="button"
@@ -760,6 +783,15 @@ const Resources = () => {
                       )}
                     />
                     
+                    <div className="bg-green-50 p-3 rounded border border-green-200">
+                      <h4 className="font-medium text-green-800 mb-1">Thông tin thanh toán thẻ ATM:</h4>
+                      <ul className="list-disc list-inside text-sm text-green-700 space-y-1">
+                        <li>Hỗ trợ thanh toán qua tất cả các ngân hàng nội địa Việt Nam</li>
+                        <li>Giao dịch được bảo mật và xác thực thông qua cổng thanh toán SePay</li>
+                        <li>Số tiền sẽ được cộng vào tài khoản ngay khi giao dịch thành công</li>
+                      </ul>
+                    </div>
+                    
                     <Button 
                       type="submit" 
                       className="w-full bg-emerald-500 hover:bg-emerald-600 text-lg py-6"
@@ -776,6 +808,16 @@ const Resources = () => {
               <div className="mt-6 text-center">
                 <h3 className="text-lg font-medium mb-4">Nạp tiền qua thẻ điện thoại</h3>
                 <p className="text-sm text-gray-600 mb-6">Tính năng này đang được phát triển</p>
+                
+                <div className="bg-orange-50 p-3 rounded border border-orange-200 mt-4 mb-6 text-left">
+                  <h4 className="font-medium text-orange-800 mb-1">Thông tin thẻ cào:</h4>
+                  <ul className="list-disc list-inside text-sm text-orange-700 space-y-1">
+                    <li>Hỗ trợ các nhà mạng: Viettel, Mobifone, Vinaphone</li>
+                    <li>Mệnh giá thẻ: 10.000đ, 20.000đ, 50.000đ, 100.000đ, 200.000đ, 500.000đ</li>
+                    <li>Tính năng sẽ sớm được phát triển trong tương lai</li>
+                  </ul>
+                </div>
+                
                 <Button 
                   className="w-full bg-gray-500 hover:bg-gray-600 text-lg py-6"
                   disabled
@@ -841,7 +883,7 @@ const Resources = () => {
             </Button>
             <Button 
               onClick={handlePurchase}
-              disabled={!selectedResource || userBalance < (selectedResource.price || 0) || isLoading}
+              disabled={!selectedResource || userBalance < (selectedResource?.price || 0) || isLoading}
             >
               {isLoading ? 'Đang xử lý...' : 'Xác nhận mua'}
             </Button>

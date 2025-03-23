@@ -1,3 +1,4 @@
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -331,37 +332,61 @@ router.post('/deposit', authenticateToken, async (req, res) => {
     
     const connection = await createConnection();
     
-    // Create a pending transaction
-    await connection.execute(
-      'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref, metadata) VALUES (?, ?, ?, ?, ?, ?)',
-      [
-        req.user.id, 
-        amount, 
-        'deposit', 
-        'pending', 
-        transaction_id,
-        JSON.stringify(bank_info || {})
-      ]
-    );
+    // Start transaction
+    await connection.beginTransaction();
     
-    // Get current balance (don't update yet, admin will verify)
-    const [users] = await connection.execute(
-      'SELECT balance FROM users WHERE user_id = ?',
-      [req.user.id]
-    );
-    
-    await connection.end();
-    
-    res.json({
-      success: true,
-      message: 'Yêu cầu nạp tiền đã được ghi nhận, đang chờ xác nhận',
-      data: {
-        amount,
-        transaction_id,
-        current_balance: users[0].balance,
-        new_balance: users[0].balance // Not updated yet
-      }
-    });
+    try {
+      // Create a pending transaction
+      await connection.execute(
+        'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref, metadata) VALUES (?, ?, ?, ?, ?, ?)',
+        [
+          req.user.id, 
+          amount, 
+          'deposit', 
+          'pending', 
+          transaction_id,
+          JSON.stringify(bank_info || {})
+        ]
+      );
+      
+      // Record in payment history
+      await connection.execute(
+        'INSERT INTO payment_history (user_id, amount, payment_method, transaction_ref, bank_name, account_number, account_name, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+          req.user.id,
+          amount,
+          'bank_transfer',
+          transaction_id,
+          bank_info?.bank_name || null,
+          bank_info?.account_number || null,
+          bank_info?.account_name || null,
+          'pending'
+        ]
+      );
+      
+      // Get current balance (don't update yet, admin will verify)
+      const [users] = await connection.execute(
+        'SELECT balance FROM users WHERE user_id = ?',
+        [req.user.id]
+      );
+      
+      await connection.commit();
+      await connection.end();
+      
+      res.json({
+        success: true,
+        message: 'Yêu cầu nạp tiền đã được ghi nhận, đang chờ xác nhận',
+        data: {
+          amount,
+          transaction_id,
+          current_balance: users[0].balance,
+          new_balance: users[0].balance // Not updated yet
+        }
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    }
   } catch (error) {
     console.error('Deposit error:', error);
     res.status(500).json({
@@ -384,69 +409,90 @@ router.post('/verify-deposit', authenticateToken, adminCheck, async (req, res) =
     }
 
     const connection = await createConnection();
+    await connection.beginTransaction();
 
-    // Find the user by username
-    const [users] = await connection.execute(
-      'SELECT user_id, balance FROM users WHERE username = ?',
-      [username]
-    );
-
-    if (users.length === 0) {
-      await connection.end();
-      return res.status(404).json({
-        success: false,
-        message: 'Không tìm thấy người dùng'
-      });
-    }
-
-    const userId = users[0].user_id;
-    const currentBalance = users[0].balance;
-
-    if (status === 'success') {
-      // Update user balance
-      const newBalance = parseFloat(currentBalance) + parseFloat(amount);
-      
-      await connection.execute(
-        'UPDATE users SET balance = ? WHERE user_id = ?',
-        [newBalance, userId]
+    try {
+      // Find the user by username
+      const [users] = await connection.execute(
+        'SELECT user_id, balance FROM users WHERE username = ?',
+        [username]
       );
 
-      // Record transaction
-      await connection.execute(
-        'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref) VALUES (?, ?, ?, ?, ?)',
-        [userId, amount, 'deposit', 'completed', transaction_id]
-      );
+      if (users.length === 0) {
+        await connection.rollback();
+        await connection.end();
+        return res.status(404).json({
+          success: false,
+          message: 'Không tìm thấy người dùng'
+        });
+      }
 
-      // Create notification for the user
-      await connection.execute(
-        'INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, ?)',
-        [userId, 'system', `Nạp tiền thành công: +${amount.toLocaleString('vi-VN')}đ`, false]
-      );
+      const userId = users[0].user_id;
+      const currentBalance = users[0].balance;
 
-      await connection.end();
+      if (status === 'success') {
+        // Update user balance
+        const newBalance = parseFloat(currentBalance) + parseFloat(amount);
+        
+        await connection.execute(
+          'UPDATE users SET balance = ? WHERE user_id = ?',
+          [newBalance, userId]
+        );
 
-      return res.json({
-        success: true,
-        message: 'Xác nhận nạp tiền thành công',
-        data: {
-          user_id: userId,
-          amount,
-          new_balance: newBalance
-        }
-      });
-    } else {
-      // Record failed transaction
-      await connection.execute(
-        'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref) VALUES (?, ?, ?, ?, ?)',
-        [userId, amount, 'deposit', 'failed', transaction_id]
-      );
+        // Record transaction
+        await connection.execute(
+          'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref) VALUES (?, ?, ?, ?, ?)',
+          [userId, amount, 'deposit', 'completed', transaction_id]
+        );
 
-      await connection.end();
+        // Update payment history
+        await connection.execute(
+          'UPDATE payment_history SET status = ?, admin_note = ? WHERE user_id = ? AND transaction_ref = ?',
+          ['completed', 'Xác nhận bởi admin', userId, transaction_id]
+        );
 
-      return res.status(400).json({
-        success: false,
-        message: 'Giao dịch không thành công'
-      });
+        // Create notification for the user
+        await connection.execute(
+          'INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, ?)',
+          [userId, 'system', `Nạp tiền thành công: +${amount.toLocaleString('vi-VN')}đ`, false]
+        );
+
+        await connection.commit();
+        await connection.end();
+
+        return res.json({
+          success: true,
+          message: 'Xác nhận nạp tiền thành công',
+          data: {
+            user_id: userId,
+            amount,
+            new_balance: newBalance
+          }
+        });
+      } else {
+        // Record failed transaction
+        await connection.execute(
+          'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref) VALUES (?, ?, ?, ?, ?)',
+          [userId, amount, 'deposit', 'failed', transaction_id]
+        );
+
+        // Update payment history
+        await connection.execute(
+          'UPDATE payment_history SET status = ?, admin_note = ? WHERE user_id = ? AND transaction_ref = ?',
+          ['failed', 'Từ chối bởi admin', userId, transaction_id]
+        );
+
+        await connection.commit();
+        await connection.end();
+
+        return res.status(400).json({
+          success: false,
+          message: 'Giao dịch không thành công'
+        });
+      }
+    } catch (error) {
+      await connection.rollback();
+      throw error;
     }
   } catch (error) {
     console.error('Verify deposit error:', error);
@@ -463,9 +509,11 @@ router.get('/pending-deposits', authenticateToken, adminCheck, async (req, res) 
     const connection = await createConnection();
     
     const [transactions] = await connection.execute(`
-      SELECT t.*, u.username, u.email, u.full_name
+      SELECT t.*, u.username, u.email, u.full_name,
+             p.bank_name, p.account_number, p.account_name 
       FROM transactions t
       JOIN users u ON t.user_id = u.user_id
+      LEFT JOIN payment_history p ON t.transaction_ref = p.transaction_ref AND t.user_id = p.user_id
       WHERE t.transaction_type = 'deposit' AND t.status = 'pending'
       ORDER BY t.created_at DESC
     `);
@@ -478,6 +526,32 @@ router.get('/pending-deposits', authenticateToken, adminCheck, async (req, res) 
     });
   } catch (error) {
     console.error('Get pending deposits error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ, vui lòng thử lại sau'
+    });
+  }
+});
+
+// Add endpoint to get payment history for user
+router.get('/payment-history', authenticateToken, async (req, res) => {
+  try {
+    const connection = await createConnection();
+    
+    const [payments] = await connection.execute(`
+      SELECT * FROM payment_history 
+      WHERE user_id = ?
+      ORDER BY created_at DESC
+    `, [req.user.id]);
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      data: payments
+    });
+  } catch (error) {
+    console.error('Get payment history error:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi máy chủ, vui lòng thử lại sau'
@@ -503,69 +577,90 @@ router.post('/sepay-deposit', authenticateToken, async (req, res) => {
     
     // Lấy thông tin người dùng
     const connection = await createConnection();
-    const [users] = await connection.execute('SELECT username FROM users WHERE user_id = ?', [userId]);
-    const username = users[0].username;
+    await connection.beginTransaction();
     
-    // Tạo chữ ký
-    const dataToSign = `${SEPAY_CONFIG.MERCHANT_ID}|${transactionRef}|${amount}|${username}`;
-    const signature = crypto
-      .createHmac('sha256', SEPAY_CONFIG.API_TOKEN)
-      .update(dataToSign)
-      .digest('hex');
-    
-    // Tạo URL thanh toán
-    const paymentData = {
-      merchant_id: SEPAY_CONFIG.MERCHANT_ID,
-      transaction_id: transactionRef,
-      amount: amount,
-      currency: 'VND',
-      description: `Nạp tiền cho tài khoản ${username}`,
-      customer_name: username,
-      customer_email: req.user.email || '',
-      return_url: `http://localhost:5173/payment-result`, // URL trả về sau khi thanh toán
-      callback_url: SEPAY_CONFIG.WEBHOOK_URL, // Webhook URL
-      signature: signature
-    };
-    
-    // Gọi API của SePay để tạo yêu cầu thanh toán
-    const sepayResponse = await axios.post(`${SEPAY_CONFIG.API_URL}/create-payment`, paymentData, {
-      headers: {
-        'Authorization': `Bearer ${SEPAY_CONFIG.API_TOKEN}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (sepayResponse.data.success) {
-      // Lưu thông tin giao dịch vào cơ sở dữ liệu
-      await connection.execute(
-        'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref, metadata) VALUES (?, ?, ?, ?, ?, ?)',
-        [
-          userId, 
-          amount, 
-          'deposit', 
-          'pending', 
-          transactionRef,
-          JSON.stringify({
-            payment_url: sepayResponse.data.payment_url,
-            payment_method: 'sepay'
-          })
-        ]
-      );
+    try {
+      const [users] = await connection.execute('SELECT username FROM users WHERE user_id = ?', [userId]);
+      const username = users[0].username;
       
-      await connection.end();
+      // Tạo chữ ký
+      const dataToSign = `${SEPAY_CONFIG.MERCHANT_ID}|${transactionRef}|${amount}|${username}`;
+      const signature = crypto
+        .createHmac('sha256', SEPAY_CONFIG.API_TOKEN)
+        .update(dataToSign)
+        .digest('hex');
       
-      // Trả về payment URL cho client
-      res.json({
-        success: true,
-        message: 'Đã tạo yêu cầu thanh toán',
-        data: {
-          payment_url: sepayResponse.data.payment_url,
-          transaction_ref: transactionRef
+      // Tạo URL thanh toán
+      const paymentData = {
+        merchant_id: SEPAY_CONFIG.MERCHANT_ID,
+        transaction_id: transactionRef,
+        amount: amount,
+        currency: 'VND',
+        description: `Nạp tiền cho tài khoản ${username}`,
+        customer_name: username,
+        customer_email: req.user.email || '',
+        return_url: `http://localhost:5173/payment-result`, // URL trả về sau khi thanh toán
+        callback_url: SEPAY_CONFIG.WEBHOOK_URL, // Webhook URL
+        signature: signature
+      };
+      
+      // Gọi API của SePay để tạo yêu cầu thanh toán
+      const sepayResponse = await axios.post(`${SEPAY_CONFIG.API_URL}/create-payment`, paymentData, {
+        headers: {
+          'Authorization': `Bearer ${SEPAY_CONFIG.API_TOKEN}`,
+          'Content-Type': 'application/json'
         }
       });
-    } else {
-      await connection.end();
-      throw new Error('Không thể tạo yêu cầu thanh toán');
+      
+      if (sepayResponse.data.success) {
+        // Lưu thông tin giao dịch vào cơ sở dữ liệu
+        await connection.execute(
+          'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref, metadata) VALUES (?, ?, ?, ?, ?, ?)',
+          [
+            userId, 
+            amount, 
+            'deposit', 
+            'pending', 
+            transactionRef,
+            JSON.stringify({
+              payment_url: sepayResponse.data.payment_url,
+              payment_method: 'sepay'
+            })
+          ]
+        );
+        
+        // Record in payment history
+        await connection.execute(
+          'INSERT INTO payment_history (user_id, amount, payment_method, transaction_ref, status) VALUES (?, ?, ?, ?, ?)',
+          [
+            userId,
+            amount,
+            'sepay',
+            transactionRef,
+            'pending'
+          ]
+        );
+        
+        await connection.commit();
+        await connection.end();
+        
+        // Trả về payment URL cho client
+        res.json({
+          success: true,
+          message: 'Đã tạo yêu cầu thanh toán',
+          data: {
+            payment_url: sepayResponse.data.payment_url,
+            transaction_ref: transactionRef
+          }
+        });
+      } else {
+        await connection.rollback();
+        await connection.end();
+        throw new Error('Không thể tạo yêu cầu thanh toán');
+      }
+    } catch (error) {
+      await connection.rollback();
+      throw error;
     }
   } catch (error) {
     console.error('SePay deposit error:', error);
@@ -606,57 +701,77 @@ router.post('/sepay-webhook', async (req, res) => {
     }
     
     const connection = await createConnection();
+    await connection.beginTransaction();
     
-    // Tìm giao dịch trong cơ sở dữ liệu
-    const [transactions] = await connection.execute(
-      'SELECT * FROM transactions WHERE transaction_ref = ? AND transaction_type = ? AND status = ?',
-      [transaction_id, 'deposit', 'pending']
-    );
-    
-    if (transactions.length === 0) {
+    try {
+      // Tìm giao dịch trong cơ sở dữ liệu
+      const [transactions] = await connection.execute(
+        'SELECT * FROM transactions WHERE transaction_ref = ? AND transaction_type = ? AND status = ?',
+        [transaction_id, 'deposit', 'pending']
+      );
+      
+      if (transactions.length === 0) {
+        await connection.rollback();
+        await connection.end();
+        return res.status(404).json({ success: false, message: 'Transaction not found' });
+      }
+      
+      const transaction = transactions[0];
+      
+      // Nếu giao dịch thành công, cập nhật số dư người dùng
+      if (status === 'successful') {
+        // Cập nhật trạng thái giao dịch
+        await connection.execute(
+          'UPDATE transactions SET status = ? WHERE transaction_id = ?',
+          ['completed', transaction.transaction_id]
+        );
+        
+        // Update payment history
+        await connection.execute(
+          'UPDATE payment_history SET status = ? WHERE transaction_ref = ?',
+          ['completed', transaction_id]
+        );
+        
+        // Cập nhật số dư người dùng
+        await connection.execute(
+          'UPDATE users SET balance = balance + ? WHERE user_id = ?',
+          [parseFloat(amount), transaction.user_id]
+        );
+        
+        // Tạo thông báo cho người dùng
+        await connection.execute(
+          'INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, ?)',
+          [transaction.user_id, 'system', `Nạp tiền thành công: +${parseFloat(amount).toLocaleString('vi-VN')}đ`, false]
+        );
+      } else {
+        // Cập nhật trạng thái giao dịch thành thất bại
+        await connection.execute(
+          'UPDATE transactions SET status = ? WHERE transaction_id = ?',
+          ['failed', transaction.transaction_id]
+        );
+        
+        // Update payment history
+        await connection.execute(
+          'UPDATE payment_history SET status = ? WHERE transaction_ref = ?',
+          ['failed', transaction_id]
+        );
+        
+        // Tạo thông báo cho người dùng
+        await connection.execute(
+          'INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, ?)',
+          [transaction.user_id, 'system', `Nạp tiền thất bại. Vui lòng liên hệ hỗ trợ.`, false]
+        );
+      }
+      
+      await connection.commit();
       await connection.end();
-      return res.status(404).json({ success: false, message: 'Transaction not found' });
+      
+      // Phản hồi thành công cho SePay
+      res.json({ success: true });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
     }
-    
-    const transaction = transactions[0];
-    
-    // Nếu giao dịch thành công, cập nhật số dư người dùng
-    if (status === 'successful') {
-      // Cập nhật trạng thái giao dịch
-      await connection.execute(
-        'UPDATE transactions SET status = ? WHERE transaction_id = ?',
-        ['completed', transaction.transaction_id]
-      );
-      
-      // Cập nhật số dư người dùng
-      await connection.execute(
-        'UPDATE users SET balance = balance + ? WHERE user_id = ?',
-        [parseFloat(amount), transaction.user_id]
-      );
-      
-      // Tạo thông báo cho người dùng
-      await connection.execute(
-        'INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, ?)',
-        [transaction.user_id, 'system', `Nạp tiền thành công: +${parseFloat(amount).toLocaleString('vi-VN')}đ`, false]
-      );
-    } else {
-      // Cập nhật trạng thái giao dịch thành thất bại
-      await connection.execute(
-        'UPDATE transactions SET status = ? WHERE transaction_id = ?',
-        ['failed', transaction.transaction_id]
-      );
-      
-      // Tạo thông báo cho người dùng
-      await connection.execute(
-        'INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, ?)',
-        [transaction.user_id, 'system', `Nạp tiền thất bại. Vui lòng liên hệ hỗ trợ.`, false]
-      );
-    }
-    
-    await connection.end();
-    
-    // Phản hồi thành công cho SePay
-    res.json({ success: true });
   } catch (error) {
     console.error('SePay webhook error:', error);
     res.status(500).json({ success: false, message: 'Internal server error' });
