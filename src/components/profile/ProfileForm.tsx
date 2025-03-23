@@ -62,7 +62,6 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
         formDataToSend.append('profile_picture', profilePicture);
       }
 
-      // Thay đổi từ /api/user/update thành /api/users/update
       const response = await fetch('http://localhost:5000/api/users/update', {
         method: 'PUT',
         headers: {
@@ -74,8 +73,18 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
       const data = await response.json();
 
       if (data.success) {
-        toast.success('Cập nhật thông tin thành công');
+        // Cập nhật state và local UI
         updateUser(data.data);
+        
+        // Cập nhật preview hình ảnh với đường dẫn mới từ server
+        if (data.data.profile_picture) {
+          setPicturePreview(data.data.profile_picture);
+        }
+        
+        // Reset trạng thái file đã chọn
+        setProfilePicture(null);
+        
+        toast.success('Cập nhật thông tin thành công');
       } else {
         throw new Error(data.message || 'Cập nhật thất bại');
       }
@@ -91,7 +100,7 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="flex flex-col items-center mb-6">
         <Avatar className="h-24 w-24 mb-4">
-          <AvatarImage src={picturePreview || ''} />
+          <AvatarImage src={picturePreview || ''} alt={user?.username || 'User profile'} />
           <AvatarFallback>{user?.username?.substring(0, 2).toUpperCase() || 'ND'}</AvatarFallback>
         </Avatar>
         
