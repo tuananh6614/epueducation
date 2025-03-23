@@ -1,3 +1,4 @@
+
 -- Tạo cơ sở dữ liệu
 CREATE DATABASE IF NOT EXISTS learningplatform;
 USE learningplatform;
