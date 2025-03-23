@@ -1,9 +1,17 @@
 
--- First, check if any foreign key constraints exist on the post_id column
--- If a constraint exists and is incorrect, it will need to be dropped
--- but we won't assume it's named comments_ibfk_1
+-- First check if any constraint exists on the post_id column
+SELECT COUNT(*) 
+INTO @constraint_exists
+FROM information_schema.referential_constraints
+WHERE constraint_schema = DATABASE() AND
+      table_name = 'comments' AND
+      referenced_table_name = 'blog_posts';
 
--- Add the correct foreign key constraint to reference blog_posts table
-ALTER TABLE comments
-ADD CONSTRAINT comments_blog_posts_fk
-FOREIGN KEY (post_id) REFERENCES blog_posts(post_id) ON DELETE CASCADE;
+-- If the constraint already exists, we don't need to do anything
+SET @query = IF(@constraint_exists = 0,
+    'ALTER TABLE comments ADD CONSTRAINT comments_blog_posts_fk FOREIGN KEY (post_id) REFERENCES blog_posts(post_id) ON DELETE CASCADE',
+    'SELECT "Foreign key relationship already exists" AS message');
+
+PREPARE stmt FROM @query;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
