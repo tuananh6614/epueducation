@@ -873,36 +873,37 @@ const Resources = () => {
                   <p className="mt-1 text-muted-foreground">{selectedResource.description}</p>
                 </div>
               )}
-            </DialogHeader>
+            </DialogDescription>
+          </DialogHeader>
             
-            <div className="grid gap-4 py-4">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Giá tài liệu:</span>
-                <span className="font-bold">{selectedResource?.price?.toLocaleString('vi-VN')}đ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Số dư hiện tại:</span>
-                <span className="font-bold">{userBalance?.toLocaleString('vi-VN')}đ</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-medium">Số dư sau khi mua:</span>
-                <span className="font-bold">
-                  {(userBalance && selectedResource ? userBalance - selectedResource.price : 0).toLocaleString('vi-VN')}đ
-                </span>
-              </div>
+          <div className="grid gap-4 py-4">
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Giá tài liệu:</span>
+              <span className="font-bold">{selectedResource?.price?.toLocaleString('vi-VN')}đ</span>
             </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Số dư hiện tại:</span>
+              <span className="font-bold">{userBalance?.toLocaleString('vi-VN')}đ</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="font-medium">Số dư sau khi mua:</span>
+              <span className="font-bold">
+                {(userBalance && selectedResource ? userBalance - selectedResource.price : 0).toLocaleString('vi-VN')}đ
+              </span>
+            </div>
+          </div>
 
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setOpenPurchaseDialog(false)}>Hủy</Button>
-              <Button 
-                onClick={handlePurchase}
-                disabled={isLoading || !selectedResource || userBalance < (selectedResource?.price || 0)}
-              >
-                {isLoading ? 'Đang xử lý...' : 'Xác nhận mua'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenPurchaseDialog(false)}>Hủy</Button>
+            <Button 
+              onClick={handlePurchase}
+              disabled={isLoading || !selectedResource || userBalance < (selectedResource?.price || 0)}
+            >
+              {isLoading ? 'Đang xử lý...' : 'Xác nhận mua'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
