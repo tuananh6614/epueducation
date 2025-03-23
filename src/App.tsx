@@ -54,7 +54,7 @@ function App() {
             <Route path="/payment-result" element={<PaymentResult />} />
             
             {/* Protected routes */}
-            <Route element={<ProtectedRoute />}>
+            <Route element={<ProtectedRoute children={undefined} />}>
               <Route path="/profile" element={<Profile />} />
               <Route path="/admin-deposits" element={<AdminDeposits />} />
               <Route path="*" element={<NotFound />} />
