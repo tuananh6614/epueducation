@@ -210,4 +210,33 @@ router.post('/:id/enroll', authenticateToken, async (req, res) => {
   }
 });
 
+// Check if user is the instructor of a course
+router.get('/:id/instructor-status', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    
+    const connection = await createConnection();
+    
+    // Check if user is the instructor of the course
+    const [courses] = await connection.execute(
+      'SELECT * FROM courses WHERE course_id = ? AND instructor_id = ?',
+      [id, userId]
+    );
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      isInstructor: courses.length > 0
+    });
+  } catch (error) {
+    console.error('Check instructor status error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
 module.exports = router;

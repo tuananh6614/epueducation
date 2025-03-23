@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, ArrowLeft } from 'lucide-react';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ const LessonContent = () => {
   const [content, setContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isInstructor, setIsInstructor] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -46,8 +47,35 @@ const LessonContent = () => {
       }
     };
 
+    const checkInstructorStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setIsInstructor(false);
+          return;
+        }
+
+        const response = await fetch(`http://localhost:5000/api/courses/${courseId}/instructor-status`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsInstructor(data.isInstructor);
+        } else {
+          setIsInstructor(false);
+        }
+      } catch (error) {
+        console.error('Error checking instructor status:', error);
+        setIsInstructor(false);
+      }
+    };
+
     if (courseId && lessonId) {
       fetchLessonContent();
+      checkInstructorStatus();
     }
   }, [courseId, lessonId, toast]);
 
@@ -99,6 +127,12 @@ const LessonContent = () => {
         </div>
       </Layout>
     );
+  }
+
+  // If user is not an instructor, redirect to the lesson view page
+  if (!isInstructor) {
+    navigate(`/courses/${courseId}/lessons/${lessonId}`);
+    return null;
   }
 
   return (
