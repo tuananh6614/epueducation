@@ -19,10 +19,11 @@ router.get('/', authenticateToken, async (req, res) => {
         CASE 
           WHEN n.type = 'like' THEN 'đã thích bài viết của bạn'
           WHEN n.type = 'comment' THEN 'đã bình luận bài viết của bạn'
+          WHEN n.type = 'system' THEN n.message
           ELSE ''
         END as action_text
       FROM notifications n
-      JOIN users u ON n.from_user_id = u.user_id
+      LEFT JOIN users u ON n.from_user_id = u.user_id
       LEFT JOIN blog_posts p ON n.post_id = p.post_id
       WHERE n.user_id = ?
       ORDER BY n.created_at DESC

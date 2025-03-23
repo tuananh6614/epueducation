@@ -1,4 +1,3 @@
-
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -318,57 +317,136 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
 // Process deposit
 router.post('/deposit', authenticateToken, async (req, res) => {
   try {
-    const { amount, bank_info } = req.body;
+    const { amount, transaction_id, bank_info } = req.body;
     
-    if (!amount || amount <= 0) {
+    if (!amount || amount <= 0 || !transaction_id) {
       return res.status(400).json({
         success: false,
-        message: 'Vui lòng nhập số tiền hợp lệ'
+        message: 'Vui lòng nhập số tiền và mã giao dịch hợp lệ'
       });
     }
-    
-    // In a real application, this would connect to a payment gateway
-    // For demo purposes, we'll just simulate a successful deposit
     
     const connection = await createConnection();
     
-    // Start transaction
-    await connection.beginTransaction();
+    // Create a pending transaction
+    await connection.execute(
+      'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref, metadata) VALUES (?, ?, ?, ?, ?, ?)',
+      [
+        req.user.id, 
+        amount, 
+        'deposit', 
+        'pending', 
+        transaction_id,
+        JSON.stringify(bank_info || {})
+      ]
+    );
     
-    try {
-      // Update user balance
-      await connection.execute(`
-        UPDATE users SET balance = balance + ? WHERE user_id = ?
-      `, [amount, req.user.id]);
-      
-      // Record transaction
-      await connection.execute(`
-        INSERT INTO transactions (user_id, amount, transaction_type, status)
-        VALUES (?, ?, ?, ?)
-      `, [req.user.id, amount, 'deposit', 'completed']);
-      
-      // Get updated balance
-      const [users] = await connection.execute(`
-        SELECT balance FROM users WHERE user_id = ?
-      `, [req.user.id]);
-      
-      await connection.commit();
-      
-      res.json({
-        success: true,
-        message: 'Nạp tiền thành công',
-        data: {
-          new_balance: users[0].balance
-        }
-      });
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      await connection.end();
-    }
+    // Get current balance (don't update yet, admin will verify)
+    const [users] = await connection.execute(
+      'SELECT balance FROM users WHERE user_id = ?',
+      [req.user.id]
+    );
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      message: 'Yêu cầu nạp tiền đã được ghi nhận, đang chờ xác nhận',
+      data: {
+        amount,
+        transaction_id,
+        current_balance: users[0].balance,
+        new_balance: users[0].balance // Not updated yet
+      }
+    });
   } catch (error) {
     console.error('Deposit error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ, vui lòng thử lại sau'
+    });
+  }
+});
+
+// Add a new route for handling deposit notifications
+router.post('/verify-deposit', authenticateToken, adminCheck, async (req, res) => {
+  try {
+    const { transaction_id, username, amount, status } = req.body;
+
+    if (!transaction_id || !username || !amount || !status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Thiếu thông tin giao dịch'
+      });
+    }
+
+    const connection = await createConnection();
+
+    // Find the user by username
+    const [users] = await connection.execute(
+      'SELECT user_id, balance FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (users.length === 0) {
+      await connection.end();
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy người dùng'
+      });
+    }
+
+    const userId = users[0].user_id;
+    const currentBalance = users[0].balance;
+
+    if (status === 'success') {
+      // Update user balance
+      const newBalance = parseFloat(currentBalance) + parseFloat(amount);
+      
+      await connection.execute(
+        'UPDATE users SET balance = ? WHERE user_id = ?',
+        [newBalance, userId]
+      );
+
+      // Record transaction
+      await connection.execute(
+        'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref) VALUES (?, ?, ?, ?, ?)',
+        [userId, amount, 'deposit', 'completed', transaction_id]
+      );
+
+      // Create notification for the user
+      await connection.execute(
+        'INSERT INTO notifications (user_id, type, message, is_read) VALUES (?, ?, ?, ?)',
+        [userId, 'system', `Nạp tiền thành công: +${amount.toLocaleString('vi-VN')}đ`, false]
+      );
+
+      await connection.end();
+
+      return res.json({
+        success: true,
+        message: 'Xác nhận nạp tiền thành công',
+        data: {
+          user_id: userId,
+          amount,
+          new_balance: newBalance
+        }
+      });
+    } else {
+      // Record failed transaction
+      await connection.execute(
+        'INSERT INTO transactions (user_id, amount, transaction_type, status, transaction_ref) VALUES (?, ?, ?, ?, ?)',
+        [userId, amount, 'deposit', 'failed', transaction_id]
+      );
+
+      await connection.end();
+
+      return res.status(400).json({
+        success: false,
+        message: 'Giao dịch không thành công'
+      });
+    }
+  } catch (error) {
+    console.error('Verify deposit error:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi máy chủ, vui lòng thử lại sau'

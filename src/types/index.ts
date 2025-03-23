@@ -1,3 +1,4 @@
+
 export interface User {
   user_id: number;
   username: string;
@@ -93,10 +94,13 @@ export interface Purchase {
 export interface Transaction {
   transaction_id: number;
   user_id: number;
-  resource_id: number;
+  resource_id?: number;
   amount: number;
   status: string;
   created_at: string;
+  transaction_type?: string;
+  transaction_ref?: string;
+  metadata?: string;
 }
 
 export interface ProfileFormData {
@@ -114,10 +118,10 @@ export interface PasswordFormData {
 export interface Notification {
   notification_id: number;
   user_id: number;
-  from_user_id: number;
-  post_id: number | null;
-  comment_id: number | null;
-  type: 'like' | 'comment';
+  from_user_id?: number;
+  post_id?: number | null;
+  comment_id?: number | null;
+  type: 'like' | 'comment' | 'system';
   is_read: boolean;
   created_at: string;
   from_username?: string;
@@ -125,4 +129,5 @@ export interface Notification {
   from_avatar?: string;
   post_title?: string;
   action_text?: string;
+  message?: string;
 }

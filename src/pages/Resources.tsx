@@ -14,7 +14,7 @@ import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, CreditCard 
 import SectionHeading from '@/components/ui/section-heading';
 import { useAuthCheck } from '@/utils/authCheck';
 import { useToast } from '@/hooks/use-toast';
-import AddSampleResource from '@/components/resources/AddSampleResource';
+import { toast } from 'sonner';
 
 const getResourceIcon = (type: string) => {
   switch (type) {
@@ -37,7 +37,8 @@ const depositSchema = z.object({
   }),
   bank_name: z.string().min(1, { message: 'Vui lòng nhập tên ngân hàng' }),
   account_number: z.string().min(1, { message: 'Vui lòng nhập số tài khoản' }),
-  account_name: z.string().min(1, { message: 'Vui lòng nhập tên chủ tài khoản' })
+  account_name: z.string().min(1, { message: 'Vui lòng nhập tên chủ tài khoản' }),
+  transaction_id: z.string().min(1, { message: 'Vui lòng nhập mã giao dịch' })
 });
 
 type DepositFormValues = z.infer<typeof depositSchema>;
@@ -49,10 +50,15 @@ const Resources = () => {
   const [openPurchaseDialog, setOpenPurchaseDialog] = useState(false);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [userBalance, setUserBalance] = useState<number>(0);
+  const [bankInfo, setBankInfo] = useState({
+    bankName: 'Vietcombank',
+    accountNumber: '1234567890',
+    accountName: 'NGUYEN VAN A'
+  });
   
   const navigate = useNavigate();
   const checkAuth = useAuthCheck();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   const depositForm = useForm<DepositFormValues>({
     resolver: zodResolver(depositSchema),
@@ -60,7 +66,8 @@ const Resources = () => {
       amount: '',
       bank_name: '',
       account_number: '',
-      account_name: ''
+      account_name: '',
+      transaction_id: ''
     }
   });
 
@@ -132,6 +139,7 @@ const Resources = () => {
         },
         body: JSON.stringify({
           amount: parseFloat(data.amount),
+          transaction_id: data.transaction_id,
           bank_info: {
             bank_name: data.bank_name,
             account_number: data.account_number,
@@ -143,8 +151,7 @@ const Resources = () => {
       const result = await response.json();
       
       if (result.success) {
-        toast({
-          title: 'Nạp tiền thành công',
+        toast.success('Nạp tiền thành công', {
           description: `Số dư của bạn: ${result.data.new_balance.toLocaleString('vi-VN')}đ`
         });
         
@@ -152,18 +159,14 @@ const Resources = () => {
         setOpenDepositDialog(false);
         depositForm.reset();
       } else {
-        toast({
-          title: 'Lỗi',
-          description: result.message || 'Không thể nạp tiền',
-          variant: 'destructive'
+        toast.error('Lỗi', {
+          description: result.message || 'Không thể nạp tiền'
         });
       }
     } catch (error) {
       console.error('Deposit error:', error);
-      toast({
-        title: 'Lỗi',
-        description: 'Lỗi kết nối đến máy chủ',
-        variant: 'destructive'
+      toast.error('Lỗi', {
+        description: 'Lỗi kết nối đến máy chủ'
       });
     } finally {
       setIsLoading(false);
@@ -239,7 +242,7 @@ const Resources = () => {
             subtitle="Các tài liệu chất lượng cao để hỗ trợ việc học tập của bạn"
           />
           
-          <div className="flex flex-col sm:flex-row gap-3 mt-6 md:mt-0">
+          <div className="mt-6 md:mt-0">
             <Button 
               onClick={() => setOpenDepositDialog(true)}
               variant="outline"
@@ -248,8 +251,6 @@ const Resources = () => {
               <CreditCard className="h-4 w-4" /> Nạp tiền
               <span className="font-bold">{userBalance?.toLocaleString('vi-VN')}đ</span>
             </Button>
-            
-            <AddSampleResource />
           </div>
         </div>
         
@@ -335,7 +336,13 @@ const Resources = () => {
               
               <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
                 <h4 className="font-medium text-yellow-800 mb-2">Thông tin chuyển khoản</h4>
-                <p className="text-sm text-yellow-700 mb-1">Vui lòng chuyển khoản với nội dung:</p>
+                <p className="text-sm text-yellow-700 mb-2">Vui lòng chuyển khoản đến tài khoản:</p>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Ngân hàng:</span> {bankInfo.bankName}</p>
+                  <p><span className="font-medium">Số tài khoản:</span> {bankInfo.accountNumber}</p>
+                  <p><span className="font-medium">Chủ tài khoản:</span> {bankInfo.accountName}</p>
+                </div>
+                <p className="text-sm text-yellow-700 mt-3 mb-1">Nội dung chuyển khoản:</p>
                 <p className="font-mono bg-white p-2 rounded border border-yellow-200 text-sm">
                   NAPTIEN {localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user') || '{}').username : ''}
                 </p>
@@ -343,10 +350,28 @@ const Resources = () => {
               
               <FormField
                 control={depositForm.control}
+                name="transaction_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mã giao dịch</FormLabel>
+                    <FormControl>
+                      <input 
+                        placeholder="Nhập mã giao dịch từ ngân hàng" 
+                        {...field}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={depositForm.control}
                 name="bank_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tên ngân hàng</FormLabel>
+                    <FormLabel>Tên ngân hàng của bạn</FormLabel>
                     <FormControl>
                       <input 
                         placeholder="VCB, Techcombank, MB..." 
@@ -364,7 +389,7 @@ const Resources = () => {
                 name="account_number"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Số tài khoản</FormLabel>
+                    <FormLabel>Số tài khoản của bạn</FormLabel>
                     <FormControl>
                       <input 
                         placeholder="Số tài khoản của bạn" 
@@ -382,7 +407,7 @@ const Resources = () => {
                 name="account_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tên chủ tài khoản</FormLabel>
+                    <FormLabel>Tên chủ tài khoản của bạn</FormLabel>
                     <FormControl>
                       <input 
                         placeholder="Tên chủ tài khoản của bạn" 
