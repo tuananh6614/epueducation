@@ -42,6 +42,8 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log('Đang gửi yêu cầu đăng nhập:', { username, password });
+      
       const response = await fetch('http://localhost:5000/api/login', {
         method: 'POST',
         headers: {
@@ -51,6 +53,7 @@ const Login = () => {
       });
       
       const data = await response.json();
+      console.log('Phản hồi từ server:', data);
       
       if (!response.ok) {
         throw new Error(data.message || 'Đăng nhập thất bại');

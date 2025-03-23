@@ -61,6 +61,8 @@ const Register = () => {
     setIsLoading(true);
     
     try {
+      console.log('Đang gửi yêu cầu đăng ký:', { username, email, password, fullName });
+      
       const response = await fetch('http://localhost:5000/api/register', {
         method: 'POST',
         headers: {
@@ -75,6 +77,7 @@ const Register = () => {
       });
       
       const data = await response.json();
+      console.log('Phản hồi từ server:', data);
       
       if (!response.ok) {
         throw new Error(data.message || 'Đăng ký thất bại');
@@ -85,7 +88,9 @@ const Register = () => {
         description: "Đăng ký thành công! Đang chuyển hướng đến trang đăng nhập...",
       });
       
-      navigate('/login');
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     } catch (error) {
       console.error('Registration error:', error);
       toast({

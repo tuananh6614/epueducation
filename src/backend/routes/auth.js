@@ -11,6 +11,8 @@ router.post('/register', async (req, res) => {
   try {
     const { username, email, password, fullName } = req.body;
     
+    console.log('Nhận yêu cầu đăng ký:', { username, email, fullName });
+    
     // Validate input
     if (!username || !email || !password) {
       return res.status(400).json({ 
@@ -50,6 +52,8 @@ router.post('/register', async (req, res) => {
     // Generate token
     const token = jwt.sign({ id: result.insertId }, JWT_SECRET, { expiresIn: '1d' });
     
+    console.log('Đăng ký thành công, user_id:', result.insertId);
+    
     res.status(201).json({
       success: true,
       message: 'Đăng ký thành công',
@@ -74,6 +78,8 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
+    console.log('Nhận yêu cầu đăng nhập:', { username });
+    
     if (!username || !password) {
       return res.status(400).json({ 
         success: false, 
@@ -83,7 +89,7 @@ router.post('/login', async (req, res) => {
     
     const connection = await createConnection();
     
-    // Find user by username instead of email
+    // Find user by username
     const [users] = await connection.execute(
       'SELECT * FROM users WHERE username = ?',
       [username]
@@ -91,6 +97,7 @@ router.post('/login', async (req, res) => {
     
     if (users.length === 0) {
       await connection.end();
+      console.log('Không tìm thấy người dùng với username:', username);
       return res.status(400).json({ 
         success: false, 
         message: 'Tên đăng nhập hoặc mật khẩu không chính xác' 
@@ -104,6 +111,7 @@ router.post('/login', async (req, res) => {
     
     if (!isMatch) {
       await connection.end();
+      console.log('Sai mật khẩu cho user:', username);
       return res.status(400).json({ 
         success: false, 
         message: 'Tên đăng nhập hoặc mật khẩu không chính xác' 
@@ -114,6 +122,8 @@ router.post('/login', async (req, res) => {
     
     // Generate token
     const token = jwt.sign({ id: user.user_id }, JWT_SECRET, { expiresIn: '1d' });
+    
+    console.log('Đăng nhập thành công, user_id:', user.user_id);
     
     res.json({
       success: true,
