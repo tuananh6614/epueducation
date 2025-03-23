@@ -47,6 +47,7 @@ export interface BlogPost {
   author?: string;
   author_fullname?: string;
   author_avatar?: string;
+  author_id?: number; // Add this property
   excerpt?: string;
   thumbnail?: string;
   comments_count?: number;
