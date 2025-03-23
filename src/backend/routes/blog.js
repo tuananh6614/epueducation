@@ -216,27 +216,33 @@ router.post('/comments', authenticateToken, async (req, res) => {
     
     const connection = await createConnection();
     
-    // Add comment
-    const [result] = await connection.execute(`
-      INSERT INTO comments (content, user_id, post_id)
-      VALUES (?, ?, ?)
-    `, [content, req.user.id, post_id]);
-    
-    // Get comment with author info
-    const [comments] = await connection.execute(`
-      SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
-      FROM comments c
-      JOIN users u ON c.user_id = u.user_id
-      WHERE c.comment_id = ?
-    `, [result.insertId]);
-    
-    await connection.end();
-    
-    res.status(201).json({
-      success: true,
-      message: 'Bình luận thành công',
-      data: comments[0]
-    });
+    try {
+      // Add comment
+      const [result] = await connection.execute(`
+        INSERT INTO comments (content, user_id, post_id)
+        VALUES (?, ?, ?)
+      `, [content, req.user.id, post_id]);
+      
+      // Get comment with author info
+      const [comments] = await connection.execute(`
+        SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
+        FROM comments c
+        JOIN users u ON c.user_id = u.user_id
+        WHERE c.comment_id = ?
+      `, [result.insertId]);
+      
+      await connection.end();
+      
+      res.status(201).json({
+        success: true,
+        message: 'Bình luận thành công',
+        data: comments[0]
+      });
+    } catch (err) {
+      console.error('Comment operation error:', err);
+      await connection.end();
+      throw err; // Re-throw to be caught by the outer catch
+    }
   } catch (error) {
     console.error('Add comment error:', error);
     res.status(500).json({ 

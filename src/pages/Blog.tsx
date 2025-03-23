@@ -1,5 +1,5 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { formatDistanceToNow } from 'date-fns';
 import { BlogPost } from '@/types';
 import SectionHeading from '@/components/ui/section-heading';
@@ -165,6 +166,12 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
           title: "Thành công",
           description: "Bình luận của bạn đã được đăng",
         });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: data.message || "Không thể đăng bình luận",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error posting comment:', error);
@@ -294,8 +301,8 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
         </div>
         
         <div className="flex justify-between py-1">
-          <ContextMenu>
-            <ContextMenuTrigger asChild>
+          <Popover>
+            <PopoverTrigger asChild>
               <Button 
                 variant="ghost" 
                 className={`flex-1 ${liked ? 'text-primary' : ''}`} 
@@ -308,19 +315,20 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
                 )}
                 {getReactionName(selectedReaction)}
               </Button>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="flex gap-2 p-2">
+            </PopoverTrigger>
+            <PopoverContent className="flex flex-wrap gap-2 p-2" side="top">
               {emojiReactions.map((reaction) => (
-                <ContextMenuItem
+                <button
                   key={reaction.name}
-                  className="p-1 cursor-pointer text-2xl hover:scale-125 transition-transform focus:bg-transparent"
+                  className="p-1 cursor-pointer text-2xl hover:scale-125 transition-transform"
                   onClick={() => handleReaction(reaction.name)}
                 >
                   {reaction.emoji}
-                </ContextMenuItem>
+                </button>
               ))}
-            </ContextMenuContent>
-          </ContextMenu>
+            </PopoverContent>
+          </Popover>
+          
           <Button 
             variant="ghost" 
             className="flex-1" 

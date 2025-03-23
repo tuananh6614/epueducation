@@ -15,12 +15,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger,
-} from "@/components/ui/context-menu";
 
 // Emoji reactions
 const emojiReactions = [
@@ -255,6 +249,12 @@ const BlogDetail = () => {
           title: "Thành công",
           description: "Bình luận của bạn đã được đăng",
         });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: data.message || "Không thể đăng bình luận",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error posting comment:', error);
@@ -351,8 +351,8 @@ const BlogDetail = () => {
           {/* Social Interactions */}
           <div className="flex items-center justify-between border-t border-b py-4 mb-8">
             <div className="flex items-center gap-6">
-              <ContextMenu>
-                <ContextMenuTrigger asChild>
+              <Popover>
+                <PopoverTrigger asChild>
                   <button 
                     className="flex items-center gap-2 hover:text-primary transition-colors"
                     onClick={() => handleReaction(selectedReaction || 'like')}
@@ -365,19 +365,19 @@ const BlogDetail = () => {
                     <span>{getReactionName(selectedReaction)}</span>
                     <span className="ml-1">({post.likes_count || 0})</span>
                   </button>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="flex gap-2 p-2">
+                </PopoverTrigger>
+                <PopoverContent className="flex flex-wrap gap-2 p-2" side="top">
                   {emojiReactions.map((reaction) => (
-                    <ContextMenuItem
+                    <button
                       key={reaction.name}
-                      className="p-1 cursor-pointer text-2xl hover:scale-125 transition-transform focus:bg-transparent"
+                      className="p-1 cursor-pointer text-2xl hover:scale-125 transition-transform"
                       onClick={() => handleReaction(reaction.name)}
                     >
                       {reaction.emoji}
-                    </ContextMenuItem>
+                    </button>
                   ))}
-                </ContextMenuContent>
-              </ContextMenu>
+                </PopoverContent>
+              </Popover>
               <button className="flex items-center gap-2 hover:text-primary transition-colors">
                 <MessageSquare className="h-5 w-5" />
                 <span>{comments.length} Bình luận</span>
