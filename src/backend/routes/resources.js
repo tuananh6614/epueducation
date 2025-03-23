@@ -1,8 +1,9 @@
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { createConnection } = require('../db');
-const { authenticateToken } = require('../middleware/auth');
+const { authenticateToken, adminCheck } = require('../middleware/auth');
 const { resourceUpload, getFileType, resourcesDir } = require('../config/upload');
 
 const router = express.Router();
@@ -368,7 +369,7 @@ router.post('/deposit', authenticateToken, async (req, res) => {
   }
 });
 
-// Add a new route for handling deposit notifications
+// Add a route for handling deposit notifications
 router.post('/verify-deposit', authenticateToken, adminCheck, async (req, res) => {
   try {
     const { transaction_id, username, amount, status } = req.body;
@@ -447,6 +448,34 @@ router.post('/verify-deposit', authenticateToken, adminCheck, async (req, res) =
     }
   } catch (error) {
     console.error('Verify deposit error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Lỗi máy chủ, vui lòng thử lại sau'
+    });
+  }
+});
+
+// Add new endpoint to get pending transactions for admin
+router.get('/pending-deposits', authenticateToken, adminCheck, async (req, res) => {
+  try {
+    const connection = await createConnection();
+    
+    const [transactions] = await connection.execute(`
+      SELECT t.*, u.username, u.email, u.full_name
+      FROM transactions t
+      JOIN users u ON t.user_id = u.user_id
+      WHERE t.transaction_type = 'deposit' AND t.status = 'pending'
+      ORDER BY t.created_at DESC
+    `);
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      data: transactions
+    });
+  } catch (error) {
+    console.error('Get pending deposits error:', error);
     res.status(500).json({
       success: false,
       message: 'Lỗi máy chủ, vui lòng thử lại sau'
