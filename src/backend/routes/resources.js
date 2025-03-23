@@ -1,4 +1,3 @@
-
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -247,12 +246,17 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       console.log('Recorded transaction');
       
       // Create notification for user
-      await connection.execute(`
-        INSERT INTO notifications (user_id, type, message, is_read)
-        VALUES (?, ?, ?, ?)
-      `, [userId, 'system', `Bạn đã mua thành công tài liệu "${resource.title}"`, false]);
-      
-      console.log('Created notification');
+      try {
+        await connection.execute(`
+          INSERT INTO notifications (user_id, type, message, is_read)
+          VALUES (?, ?, ?, ?)
+        `, [userId, 'system', `Bạn đã mua thành công tài liệu "${resource.title}"`, false]);
+        
+        console.log('Created notification');
+      } catch (notifError) {
+        // Log error but continue with purchase
+        console.error('Error creating notification:', notifError);
+      }
       
       await connection.commit();
       console.log('Transaction committed successfully');
