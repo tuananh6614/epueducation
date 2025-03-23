@@ -1,7 +1,9 @@
+
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const path = require('path');
+const { createConnection } = require('./db');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -49,6 +51,11 @@ app.get('/api/add-sample-resource', async (req, res) => {
     // Check if sample resource file exists in resources directory
     const resourcesDir = path.join(__dirname, '../../../public/resources');
     const sampleFilePath = path.join(resourcesDir, 'resource-sample.pdf');
+    
+    // Create resources directory if it doesn't exist
+    if (!fs.existsSync(resourcesDir)) {
+      fs.mkdirSync(resourcesDir, { recursive: true });
+    }
     
     // Create sample PDF if it doesn't exist
     if (!fs.existsSync(sampleFilePath)) {
