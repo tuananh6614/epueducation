@@ -10,12 +10,12 @@ router.get('/', async (req, res) => {
     const connection = await createConnection();
     
     // Get all courses with appropriate joins
-    // Kiểm tra và điều chỉnh tên cột phù hợp với cấu trúc bảng thực tế
+    // Điều chỉnh SQL query dựa trên cấu trúc bảng thực tế
     const [courses] = await connection.execute(`
       SELECT c.*, u.full_name AS instructorName, cat.name AS category_name,
       (SELECT COUNT(*) FROM course_enrollments WHERE course_id = c.course_id) AS enrolled
       FROM courses c
-      LEFT JOIN users u ON c.instructor_id = u.user_id
+      LEFT JOIN users u ON c.user_id = u.user_id
       LEFT JOIN categories cat ON c.category_id = cat.category_id
     `);
     
@@ -52,7 +52,7 @@ router.get('/:id', async (req, res) => {
       SELECT c.*, u.full_name AS instructorName, cat.name AS category_name,
       (SELECT COUNT(*) FROM course_enrollments WHERE course_id = c.course_id) AS enrolled
       FROM courses c
-      LEFT JOIN users u ON c.instructor_id = u.user_id
+      LEFT JOIN users u ON c.user_id = u.user_id
       LEFT JOIN categories cat ON c.category_id = cat.category_id
       WHERE c.course_id = ?
     `, [id]);
