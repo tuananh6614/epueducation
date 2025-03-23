@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import { BlogPost } from '@/types';
 import SectionHeading from '@/components/ui/section-heading';
 import { useToast } from '@/hooks/use-toast';
 import { useAuthCheck } from '@/utils/authCheck';
-import { ThumbsUp, MessageCircle, Pencil, Image, SmilePlus } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Pencil, Image, Send } from 'lucide-react';
 
 const emojiReactions = [
   { emoji: "❤️", name: "heart" },
@@ -79,8 +79,22 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
       }
     };
     
+    const fetchComments = async () => {
+      try {
+        const response = await fetch(`http://localhost:5000/api/blog/posts/${post.post_id}`);
+        const data = await response.json();
+        
+        if (data.success && data.data.comments) {
+          setComments(data.data.comments);
+        }
+      } catch (error) {
+        console.error('Error fetching comments:', error);
+      }
+    };
+    
     checkLikeStatus();
     checkAuthorStatus();
+    fetchComments();
   }, [post.post_id, post.author_id]);
 
   const handleReaction = async (reaction: string) => {
@@ -255,9 +269,7 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
       </CardContent>
       
       <CardContent className="p-4 pt-3">
-        <Link to={`/blog/${post.post_id}`}>
-          <h3 className="text-lg font-medium mb-2 hover:text-primary transition-colors">{post.title}</h3>
-        </Link>
+        <h3 className="text-lg font-medium mb-2">{post.title}</h3>
         <p className="text-muted-foreground mb-4">
           {post.content}
         </p>
@@ -367,54 +379,52 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
           ) : null}
         </div>
         
-        {commentOpen && (
-          <div className="mt-3 pt-3 border-t">
-            {comments.length > 0 && (
-              <div className="mb-4 space-y-3">
-                {comments.map(c => (
-                  <div key={c.id} className="flex gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={c.author_avatar} />
-                      <AvatarFallback>{c.author_fullname.substring(0, 2)}</AvatarFallback>
-                    </Avatar>
-                    <div className="bg-muted rounded-lg py-2 px-3 flex-grow">
-                      <div className="font-medium text-sm">{c.author_fullname}</div>
-                      <div className="text-sm">{c.text}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
-                      </div>
+        <div className="mt-3 pt-3 border-t">
+          {comments.length > 0 && (
+            <div className="mb-4 space-y-3">
+              {comments.map(c => (
+                <div key={c.id} className="flex gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={c.author_avatar} />
+                    <AvatarFallback>{c.author_fullname.substring(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <div className="bg-muted rounded-lg py-2 px-3 flex-grow">
+                    <div className="font-medium text-sm">{c.author_fullname}</div>
+                    <div className="text-sm">{c.text}</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {formatDistanceToNow(new Date(c.created_at), { addSuffix: true })}
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
-            
-            <form onSubmit={handleComment} className="flex gap-2">
-              <UserAvatar />
-              <div className="flex-grow relative">
-                <Input 
-                  className="rounded-full pr-10"
-                  placeholder="Viết bình luận..."
-                  value={comment}
-                  onChange={(e) => setComment(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleComment(e);
-                    }
-                  }}
-                />
-                <button 
-                  type="submit" 
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary"
-                  disabled={!comment.trim()}
-                >
-                  <SmilePlus className="h-5 w-5" />
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+                </div>
+              ))}
+            </div>
+          )}
+          
+          <form onSubmit={handleComment} className="flex gap-2">
+            <UserAvatar />
+            <div className="flex-grow relative">
+              <Input 
+                className="rounded-full pr-10"
+                placeholder="Viết bình luận..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleComment(e);
+                  }
+                }}
+              />
+              <button 
+                type="submit" 
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary"
+                disabled={!comment.trim()}
+              >
+                <Send className="h-5 w-5" />
+              </button>
+            </div>
+          </form>
+        </div>
       </CardContent>
     </Card>
   );

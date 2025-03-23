@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageSquare, Pencil, Smile } from 'lucide-react';
+import { Heart, MessageSquare, Pencil, Send } from 'lucide-react';
 import { BlogPost, Comment } from '@/types';
 import { useAuthCheck } from '@/utils/authCheck';
 import { useToast } from '@/hooks/use-toast';
@@ -48,7 +48,6 @@ const BlogDetail = () => {
     thumbnail: null
   });
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
-  const [showReactions, setShowReactions] = useState(false);
   
   const checkAuth = useAuthCheck();
   const { toast } = useToast();
@@ -442,20 +441,32 @@ const BlogDetail = () => {
             <h2 className="text-2xl font-bold mb-6">Bình luận</h2>
             
             {/* Comment Form */}
-            <form onSubmit={handleCommentSubmit} className="mb-8">
-              <Textarea 
-                placeholder="Viết bình luận của bạn..." 
-                className="mb-3 min-h-24"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleCommentSubmit(e);
-                  }
-                }}
-              />
-              <Button type="submit">Đăng bình luận</Button>
+            <form onSubmit={handleCommentSubmit} className="mb-8 flex gap-3 items-start">
+              <Avatar className="mt-1">
+                <AvatarImage src={`https://ui-avatars.com/api/?name=User&background=random`} />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+              <div className="flex-grow relative">
+                <Input
+                  placeholder="Viết bình luận của bạn..." 
+                  className="pr-10 rounded-full"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleCommentSubmit(e);
+                    }
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary"
+                  disabled={!commentText.trim()}
+                >
+                  <Send className="h-5 w-5" />
+                </button>
+              </div>
             </form>
             
             {/* Comments List */}
