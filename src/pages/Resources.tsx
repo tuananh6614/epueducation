@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -743,4 +744,167 @@ const Resources = () => {
             )}
             
             {depositTab === 'atm' && (
-              <div className="mt
+              <div className="mt-6 text-center">
+                <h3 className="text-lg font-medium mb-4">Thanh toán bằng thẻ ATM nội địa</h3>
+                <div className="bg-white p-6 rounded-md border border-gray-200 mx-auto mb-6">
+                  <div className="flex flex-wrap justify-center gap-3 mb-4">
+                    <img src="/lovable-uploads/c0c65079-9013-438c-a4a5-8ed80efc88ee.png" alt="VietinBank" className="h-8" />
+                    <img src="/lovable-uploads/c0c65079-9013-438c-a4a5-8ed80efc88ee.png" alt="BIDV" className="h-8" />
+                    <img src="/lovable-uploads/c0c65079-9013-438c-a4a5-8ed80efc88ee.png" alt="Vietcombank" className="h-8" />
+                  </div>
+                  <p className="text-sm text-gray-600">Thanh toán an toàn với thẻ ATM nội địa có đăng ký Internet Banking</p>
+                </div>
+                
+                <div className="text-sm text-gray-600 mb-4">
+                  <p>Số tiền: <span className="font-bold text-black">{(parseFloat(sepayForm.watch('amount') || '0')).toLocaleString('vi-VN')}đ</span></p>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-2 mb-6">
+                  {paymentAmounts.map(amount => (
+                    <button
+                      key={amount.value}
+                      type="button"
+                      className={`py-2 px-3 border rounded-md text-center transition-all ${
+                        selectedPaymentAmount === amount.value 
+                          ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
+                          : 'border-gray-200 hover:border-emerald-500'
+                      }`}
+                      onClick={() => handleAmountSelect(amount.value)}
+                    >
+                      {amount.label}
+                    </button>
+                  ))}
+                </div>
+                
+                <Button 
+                  className="w-full bg-blue-500 hover:bg-blue-600 text-lg py-6"
+                  onClick={() => handleSepayDeposit(sepayForm.getValues())}
+                  disabled={isProcessingSepay}
+                >
+                  {isProcessingSepay ? 'Đang xử lý...' : 'Thanh toán với thẻ ATM'}
+                </Button>
+              </div>
+            )}
+            
+            {depositTab === 'phone' && (
+              <div className="mt-6 text-center">
+                <h3 className="text-lg font-medium mb-4">Thanh toán bằng thẻ điện thoại</h3>
+                <div className="bg-white p-6 rounded-md border border-gray-200 mx-auto mb-6">
+                  <div className="flex flex-wrap justify-center gap-5 mb-4">
+                    <div className="flex flex-col items-center">
+                      <img src="/lovable-uploads/b97148b3-3f98-4ed3-a28d-e2764daa882c.png" alt="Viettel" className="h-10 w-10 mb-2" />
+                      <span className="text-xs">Viettel</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <img src="/lovable-uploads/b97148b3-3f98-4ed3-a28d-e2764daa882c.png" alt="Vinaphone" className="h-10 w-10 mb-2" />
+                      <span className="text-xs">Vinaphone</span>
+                    </div>
+                    <div className="flex flex-col items-center">
+                      <img src="/lovable-uploads/b97148b3-3f98-4ed3-a28d-e2764daa882c.png" alt="Mobifone" className="h-10 w-10 mb-2" />
+                      <span className="text-xs">Mobifone</span>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600">Thanh toán bằng thẻ cào điện thoại</p>
+                </div>
+                
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  <button
+                    type="button"
+                    className={`py-2 px-3 border rounded-md text-center transition-all ${selectedPaymentAmount === "10000" ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 hover:border-emerald-500'}`}
+                    onClick={() => handleAmountSelect("10000")}
+                  >
+                    10.000đ
+                  </button>
+                  <button
+                    type="button"
+                    className={`py-2 px-3 border rounded-md text-center transition-all ${selectedPaymentAmount === "20000" ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 hover:border-emerald-500'}`}
+                    onClick={() => handleAmountSelect("20000")}
+                  >
+                    20.000đ
+                  </button>
+                  <button
+                    type="button"
+                    className={`py-2 px-3 border rounded-md text-center transition-all ${selectedPaymentAmount === "50000" ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-gray-200 hover:border-emerald-500'}`}
+                    onClick={() => handleAmountSelect("50000")}
+                  >
+                    50.000đ
+                  </button>
+                </div>
+                
+                <Form {...sepayForm}>
+                  <form onSubmit={sepayForm.handleSubmit(handleSepayDeposit)} className="space-y-4">
+                    <FormField
+                      control={sepayForm.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Số điện thoại (tùy chọn)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="0987654321" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-lg py-6"
+                      disabled={isProcessingSepay}
+                    >
+                      {isProcessingSepay ? 'Đang xử lý...' : 'Tiếp tục thanh toán'}
+                    </Button>
+                  </form>
+                </Form>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openPurchaseDialog} onOpenChange={setOpenPurchaseDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác nhận mua tài liệu</DialogTitle>
+            <DialogDescription>
+              {selectedResource && (
+                <div className="mt-2">
+                  <p className="font-medium text-foreground">{selectedResource.title}</p>
+                  <p className="mt-1 text-muted-foreground">{selectedResource.description}</p>
+                </div>
+              )}
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Giá tài liệu:</span>
+                <span className="font-bold">{selectedResource?.price?.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Số dư hiện tại:</span>
+                <span className="font-bold">{userBalance?.toLocaleString('vi-VN')}đ</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium">Số dư sau khi mua:</span>
+                <span className="font-bold">
+                  {(userBalance && selectedResource ? userBalance - selectedResource.price : 0).toLocaleString('vi-VN')}đ
+                </span>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setOpenPurchaseDialog(false)}>Hủy</Button>
+              <Button 
+                onClick={handlePurchase}
+                disabled={isLoading || !selectedResource || userBalance < (selectedResource?.price || 0)}
+              >
+                {isLoading ? 'Đang xử lý...' : 'Xác nhận mua'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+    </Layout>
+  );
+};
+
+export default Resources;
