@@ -27,6 +27,7 @@ app.use(express.static(path.join(__dirname, '../../public')));
 
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../../../public/uploads')));
+app.use('/resources', express.static(path.join(__dirname, '../../../public/resources')));
 
 // Routes
 app.use('/api', authRoutes);
