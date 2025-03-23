@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -8,12 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { BookOpen, Clock, PlayCircle, BarChart, CheckCircle, User, Globe, Loader2 } from 'lucide-react';
+import { BookOpen, Clock, PlayCircle, BarChart, CheckCircle, User, Globe, Loader2, FileText } from 'lucide-react';
 import { Course } from '@/types';
 import NotFound from './NotFound';
 import { useToast } from '@/hooks/use-toast';
 
-// Hàm để fetch chi tiết khóa học từ API
 const fetchCourseDetail = async (courseId: string): Promise<any> => {
   const response = await fetch(`http://localhost:5000/api/courses/${courseId}`);
   const data = await response.json();
@@ -25,7 +23,6 @@ const fetchCourseDetail = async (courseId: string): Promise<any> => {
   return data.data;
 };
 
-// Hàm để fetch khóa học liên quan từ API
 const fetchRelatedCourses = async (): Promise<Course[]> => {
   const response = await fetch('http://localhost:5000/api/courses');
   const data = await response.json();
@@ -37,7 +34,6 @@ const fetchRelatedCourses = async (): Promise<Course[]> => {
   return data.data;
 };
 
-// CourseCard component
 const CourseCard = ({ course }: { course: Course }) => {
   return (
     <Card className="h-full">
@@ -81,7 +77,6 @@ const CourseDetail = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   
-  // Fetch course details
   const { 
     data: courseDetail, 
     isLoading: isLoadingDetail, 
@@ -94,7 +89,6 @@ const CourseDetail = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
   
-  // Fetch related courses
   const { 
     data: relatedCourses = [], 
     isLoading: isLoadingRelated 
@@ -104,7 +98,6 @@ const CourseDetail = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
   
-  // Filter related courses
   const filteredRelatedCourses = relatedCourses
     .filter(c => c.course_id !== Number(courseId))
     .filter(c => 
@@ -112,7 +105,6 @@ const CourseDetail = () => {
     )
     .slice(0, 3);
   
-  // Show loading state
   if (isLoadingDetail) {
     return (
       <Layout>
@@ -124,7 +116,6 @@ const CourseDetail = () => {
     );
   }
   
-  // Show error state
   if (isErrorDetail || !courseDetail) {
     const errorMessage = errorDetail instanceof Error 
       ? errorDetail.message 
@@ -143,7 +134,6 @@ const CourseDetail = () => {
     );
   }
   
-  // Mock data for the course
   const courseDetails = {
     lessons: courseDetail.lessons?.length || 0,
     duration: courseDetail.duration || '36 giờ',
@@ -210,7 +200,6 @@ const CourseDetail = () => {
   };
 
   const handleEnrollClick = () => {
-    // Check if user is logged in
     const user = localStorage.getItem('user');
     
     if (!user) {
@@ -223,20 +212,29 @@ const CourseDetail = () => {
       return;
     }
     
-    // If logged in, show success message
     toast({
       title: "Đăng ký thành công",
       description: `Bạn đã đăng ký khóa học "${courseDetail.title}" thành công.`,
     });
   };
 
+  const isInstructor = () => {
+    const user = localStorage.getItem('user');
+    if (!user) return false;
+    
+    try {
+      const userData = JSON.parse(user);
+      return userData && userData.user_id === courseDetail.instructor_id;
+    } catch (e) {
+      return false;
+    }
+  };
+
   return (
     <Layout>
-      {/* Hero Section */}
       <div className="bg-muted/30 pt-10 pb-16">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-8 items-start">
-            {/* Course Info */}
             <div className="w-full md:w-3/5 animate-slide-up">
               <div className="flex flex-wrap gap-2 mb-4">
                 {courseDetail.categories?.map((category: string) => (
@@ -281,7 +279,6 @@ const CourseDetail = () => {
               </Button>
             </div>
             
-            {/* Course Preview */}
             <div className="w-full md:w-2/5 animate-slide-up animation-delay-200">
               <div className="aspect-video rounded-lg overflow-hidden shadow-xl relative">
                 <img 
@@ -301,7 +298,6 @@ const CourseDetail = () => {
         </div>
       </div>
       
-      {/* Course Details Tabs */}
       <div className="container mx-auto px-4 py-12">
         <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full justify-start mb-8 border-b rounded-none bg-transparent pb-px overflow-x-auto">
@@ -396,18 +392,33 @@ const CourseDetail = () => {
                     </AccordionTrigger>
                     <AccordionContent className="px-0 pt-0">
                       <div className="divide-y">
-                        {section.lessons.map((lesson, lessonIndex) => (
-                          <div key={lessonIndex} className="flex justify-between items-center p-4 hover:bg-muted/10">
-                            <div className="flex items-center gap-3">
-                              <PlayCircle className="h-5 w-5 text-muted-foreground" />
-                              <span>{lesson.title}</span>
-                              {lesson.isPreview && (
-                                <Badge variant="outline" className="ml-2">Xem trước</Badge>
-                              )}
+                        {section.lessons.map((lesson, lessonIndex) => {
+                          const originalLesson = courseDetail.lessons.find(
+                            (l) => l.title === lesson.title || l.title.includes(lesson.title)
+                          );
+                          
+                          return (
+                            <div key={lessonIndex} className="flex justify-between items-center p-4 hover:bg-muted/10">
+                              <div className="flex items-center gap-3">
+                                <PlayCircle className="h-5 w-5 text-muted-foreground" />
+                                <span>{lesson.title}</span>
+                                {lesson.isPreview && (
+                                  <Badge variant="outline" className="ml-2">Xem trước</Badge>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm text-muted-foreground">{lesson.duration}</span>
+                                {isInstructor() && originalLesson && (
+                                  <Link to={`/courses/${courseId}/lessons/${originalLesson.lesson_id}/content`}>
+                                    <Button variant="ghost" size="sm">
+                                      <FileText className="h-4 w-4" />
+                                    </Button>
+                                  </Link>
+                                )}
+                              </div>
                             </div>
-                            <span className="text-sm text-muted-foreground">{lesson.duration}</span>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </AccordionContent>
                   </AccordionItem>
@@ -440,7 +451,6 @@ const CourseDetail = () => {
         </Tabs>
       </div>
       
-      {/* Recommended Courses */}
       <div className="bg-muted/30 py-16">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl font-medium mb-8">Khóa học liên quan</h2>
@@ -466,7 +476,6 @@ const CourseDetail = () => {
         </div>
       </div>
       
-      {/* CTA Section */}
       <div className="py-16">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-2xl md:text-3xl font-medium mb-6">

@@ -1,46 +1,46 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { lazy, Suspense } from "react";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import Login from "./components/auth/Login";
-import Register from "./components/auth/Register";
-import ForgotPassword from "./components/auth/ForgotPassword";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from '@/components/ui/toaster';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
-const Courses = lazy(() => import("./pages/Courses"));
-const CourseDetail = lazy(() => import("./pages/CourseDetail"));
-const Blog = lazy(() => import("./pages/Blog"));
-const BlogDetail = lazy(() => import("./pages/BlogDetail"));
-const Resources = lazy(() => import("./pages/Resources"));
-const About = lazy(() => import("./pages/About"));
-const Profile = lazy(() => import("./pages/Profile"));
+import Index from '@/pages/Index';
+import About from '@/pages/About';
+import Courses from '@/pages/Courses';
+import CourseDetail from '@/pages/CourseDetail';
+import LessonContent from '@/pages/LessonContent';
+import Blog from '@/pages/Blog';
+import BlogDetail from '@/pages/BlogDetail';
+import Resources from '@/pages/Resources';
+import Profile from '@/pages/Profile';
+import NotFound from '@/pages/NotFound';
+import Login from '@/components/auth/Login';
+import Register from '@/components/auth/Register';
+import ForgotPassword from '@/components/auth/ForgotPassword';
+
+import './App.css';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Suspense fallback={
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="animate-pulse text-primary">Đang tải...</div>
-          </div>
-        }>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
+        <Router>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/about" element={<About />} />
             <Route path="/courses" element={<Courses />} />
             <Route path="/courses/:courseId" element={<CourseDetail />} />
+            <Route path="/courses/:courseId/lessons/:lessonId/content" element={
+              <ProtectedRoute>
+                <LessonContent />
+              </ProtectedRoute>
+            } />
             <Route path="/blog" element={<Blog />} />
             <Route path="/blog/:postId" element={<BlogDetail />} />
             <Route path="/resources" element={<Resources />} />
-            <Route path="/about" element={<About />} />
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />
@@ -51,10 +51,11 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </Suspense>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+        </Router>
+        <Toaster />
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

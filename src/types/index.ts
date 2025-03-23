@@ -33,6 +33,8 @@ export interface Lesson {
   video_link: string | null;
   order_index: number | null;
   duration?: string;
+  is_free?: boolean;
+  video_url?: string;
 }
 
 export interface BlogPost {

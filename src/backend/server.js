@@ -8,6 +8,7 @@ const path = require('path');
 const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const coursesRoutes = require('./routes/courses');
+const lessonsRoutes = require('./routes/lessons');
 const blogRoutes = require('./routes/blog');
 const likesRoutes = require('./routes/likes');
 const resourcesRoutes = require('./routes/resources');
@@ -29,6 +30,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../../../public/uploads
 app.use('/api', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/courses', coursesRoutes);
+app.use('/api/courses', lessonsRoutes); // Add lessons routes
 app.use('/api/blog', blogRoutes);
 app.use('/api/likes', likesRoutes);
 app.use('/api/resources', resourcesRoutes);
