@@ -1,41 +1,129 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
-import { featuredBlogPosts } from '@/data/mockData';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
 import { Heart, MessageSquare, Share } from 'lucide-react';
-import { Comment } from '@/types';
+import { BlogPost, Comment } from '@/types';
 import { useAuthCheck } from '@/utils/authCheck';
+import { useToast } from '@/hooks/use-toast';
 
 const BlogDetail = () => {
   const { postId } = useParams<{ postId: string }>();
+  const [post, setPost] = useState<BlogPost | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentText, setCommentText] = useState('');
-  const [likes, setLikes] = useState<number>(0);
+  const [liked, setLiked] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const checkAuth = useAuthCheck();
+  const { toast } = useToast();
   
-  // Find the post by ID
-  const post = featuredBlogPosts.find((p) => p.post_id === Number(postId));
+  useEffect(() => {
+    const fetchPostDetails = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`http://localhost:5000/api/blog/posts/${postId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+          setPost(data.data);
+          setComments(data.data.comments || []);
+        } else {
+          setError('Không tìm thấy bài viết hoặc đã có lỗi xảy ra');
+        }
+      } catch (error) {
+        console.error('Error fetching post details:', error);
+        setError('Không thể kết nối đến máy chủ, vui lòng thử lại sau');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    const checkLikeStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch(`http://localhost:5000/api/likes/check?post_id=${postId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          setLiked(data.liked);
+        }
+      } catch (error) {
+        console.error('Error checking like status:', error);
+      }
+    };
+    
+    fetchPostDetails();
+    checkLikeStatus();
+  }, [postId]);
   
-  const handleLike = () => {
+  const handleLike = async () => {
     if (checkAuth('thích bài viết')) {
-      setLikes(likes + 1);
+      try {
+        const token = localStorage.getItem('token');
+        
+        const response = await fetch('http://localhost:5000/api/likes', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ post_id: Number(postId) })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          setLiked(data.liked);
+          // Update likes count
+          if (post) {
+            setPost({
+              ...post,
+              likes_count: data.liked 
+                ? (post.likes_count || 0) + 1 
+                : Math.max((post.likes_count || 0) - 1, 0)
+            });
+          }
+          
+          toast({
+            title: "Thành công",
+            description: data.liked ? "Đã thích bài viết" : "Đã bỏ thích bài viết",
+          });
+        }
+      } catch (error) {
+        console.error('Error liking post:', error);
+        toast({
+          title: "Lỗi",
+          description: "Không thể thích bài viết, vui lòng thử lại sau",
+          variant: "destructive",
+        });
+      }
     }
   };
   
   const handleShare = () => {
     if (checkAuth('chia sẻ bài viết')) {
       // Share logic would go here
-      console.log('Shared post');
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Đã sao chép liên kết",
+        description: "Liên kết bài viết đã được sao chép vào clipboard",
+      });
     }
   };
   
-  const handleCommentSubmit = (e: React.FormEvent) => {
+  const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!checkAuth('bình luận')) {
@@ -44,33 +132,69 @@ const BlogDetail = () => {
     
     if (!commentText.trim()) return;
     
-    // Get the current user from localStorage
-    const userString = localStorage.getItem('user');
-    const user = userString ? JSON.parse(userString) : null;
-    
-    if (!user) {
-      return;
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('http://localhost:5000/api/blog/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          content: commentText,
+          post_id: Number(postId)
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setComments([data.data, ...comments]);
+        setCommentText('');
+        
+        // Update comments count in post
+        if (post) {
+          setPost({
+            ...post,
+            comments_count: (post.comments_count || 0) + 1
+          });
+        }
+        
+        toast({
+          title: "Thành công",
+          description: "Bình luận của bạn đã được đăng",
+        });
+      }
+    } catch (error) {
+      console.error('Error posting comment:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể đăng bình luận, vui lòng thử lại sau",
+        variant: "destructive",
+      });
     }
-    
-    const newComment: Comment = {
-      comment_id: comments.length + 1,
-      post_id: Number(postId),
-      user_id: user.id,
-      content: commentText,
-      created_at: new Date().toISOString(),
-      updated_at: null,
-      author: user.username,
-    };
-    
-    setComments([newComment, ...comments]);
-    setCommentText('');
   };
   
-  if (!post) {
+  if (loading) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12">
+          <div className="text-center py-8">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Đang tải bài viết...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+  
+  if (error || !post) {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12">
           <h1 className="text-2xl font-bold">Bài viết không tồn tại</h1>
+          <p className="text-muted-foreground mt-2">{error}</p>
         </div>
       </Layout>
     );
@@ -85,11 +209,11 @@ const BlogDetail = () => {
             <h1 className="text-3xl md:text-4xl font-bold mb-4">{post.title}</h1>
             <div className="flex items-center gap-4 mb-6">
               <Avatar>
-                <AvatarImage src={`https://ui-avatars.com/api/?name=${post.author}&background=random`} />
-                <AvatarFallback>{post.author?.substring(0, 2)}</AvatarFallback>
+                <AvatarImage src={post.author_avatar || `https://ui-avatars.com/api/?name=${post.author_fullname || post.author}&background=random`} />
+                <AvatarFallback>{(post.author_fullname || post.author)?.substring(0, 2)}</AvatarFallback>
               </Avatar>
               <div>
-                <div className="font-medium">{post.author}</div>
+                <div className="font-medium">{post.author_fullname || post.author}</div>
                 <div className="text-sm text-muted-foreground">
                   {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
                 </div>
@@ -98,38 +222,20 @@ const BlogDetail = () => {
           </div>
           
           {/* Featured Image */}
-          <div className="aspect-video w-full rounded-lg overflow-hidden mb-8">
-            <img 
-              src={post.thumbnail} 
-              alt={post.title} 
-              className="w-full h-full object-cover"
-            />
-          </div>
+          {post.thumbnail && (
+            <div className="aspect-video w-full rounded-lg overflow-hidden mb-8">
+              <img 
+                src={post.thumbnail} 
+                alt={post.title} 
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
           
           {/* Post Content */}
           <div className="prose max-w-none mb-10">
-            <p className="mb-4 text-lg">
-              {post.excerpt}
-            </p>
-            <p className="mb-4">
-              Trong thế giới công nghệ ngày nay, việc học trực tuyến đã trở thành một phần không thể thiếu trong hành trình giáo dục của nhiều người. Từ sinh viên đại học đến chuyên gia muốn nâng cao kỹ năng, các nền tảng học trực tuyến cung cấp cơ hội tiếp cận với kiến thức mà không bị giới hạn bởi không gian hay thời gian.
-            </p>
-            <p className="mb-4">
-              Lợi ích của học trực tuyến không chỉ dừng lại ở tính linh hoạt. Nó còn mang đến khả năng tiếp cận với các giảng viên hàng đầu từ khắp nơi trên thế giới, tài nguyên học tập phong phú, và cộng đồng học viên đa dạng. Điều này tạo ra một môi trường học tập phong phú và toàn diện, nơi kiến thức không chỉ đến từ giáo trình mà còn từ sự tương tác và chia sẻ giữa những người tham gia.
-            </p>
-            <h2 className="text-2xl font-bold mt-8 mb-4">Các xu hướng mới trong học trực tuyến</h2>
-            <p className="mb-4">
-              Công nghệ tiếp tục phát triển, và cùng với nó, các phương pháp học trực tuyến cũng không ngừng đổi mới. Từ việc áp dụng trí tuệ nhân tạo để cá nhân hóa trải nghiệm học tập đến việc tích hợp thực tế ảo để tạo ra các môi trường học tập immersive, ranh giới giữa lớp học truyền thống và kỹ thuật số đang dần mờ đi.
-            </p>
-            <p className="mb-4">
-              Một xu hướng đáng chú ý khác là sự phát triển của các khóa học vi mô (microlearning), nơi nội dung học tập được chia thành các phần nhỏ, dễ tiêu hóa, giúp người học dễ dàng tích hợp việc học vào lịch trình bận rộn của họ. Điều này đặc biệt hữu ích cho những người làm việc toàn thời gian nhưng vẫn muốn nâng cao kỹ năng.
-            </p>
-            <h2 className="text-2xl font-bold mt-8 mb-4">Kết luận</h2>
-            <p className="mb-4">
-              Học trực tuyến không phải là xu hướng tạm thời mà là một chuyển đổi cơ bản trong cách chúng ta tiếp cận giáo dục. Với công nghệ tiếp tục phát triển và trở nên ngày càng tích hợp vào cuộc sống hàng ngày của chúng ta, học trực tuyến sẽ chỉ trở nên phổ biến và tinh vi hơn.
-            </p>
-            <p>
-              Dù bạn đang tìm kiếm bằng cấp, phát triển kỹ năng chuyên môn, hay chỉ đơn giản là tìm hiểu về một chủ đề mới vì sự tò mò, học trực tuyến cung cấp một cánh cửa đến với kiến thức mà trước đây có thể không dễ dàng tiếp cận được. Đó là một công cụ mạnh mẽ cho sự phát triển cá nhân và chuyên môn trong thế kỷ 21.
+            <p className="mb-4 text-lg whitespace-pre-wrap">
+              {post.content}
             </p>
           </div>
           
@@ -140,8 +246,8 @@ const BlogDetail = () => {
                 onClick={handleLike}
                 className="flex items-center gap-2 hover:text-primary transition-colors"
               >
-                <Heart className={`h-5 w-5 ${likes > 0 ? 'fill-primary text-primary' : ''}`} />
-                <span>{likes} Thích</span>
+                <Heart className={`h-5 w-5 ${liked ? 'fill-primary text-primary' : ''}`} />
+                <span>{post.likes_count || 0} Thích</span>
               </button>
               <button className="flex items-center gap-2 hover:text-primary transition-colors">
                 <MessageSquare className="h-5 w-5" />
@@ -179,12 +285,12 @@ const BlogDetail = () => {
                   <CardContent className="p-4">
                     <div className="flex items-start gap-4">
                       <Avatar>
-                        <AvatarImage src={`https://ui-avatars.com/api/?name=${comment.author}&background=random`} />
-                        <AvatarFallback>{comment.author?.substring(0, 2)}</AvatarFallback>
+                        <AvatarImage src={comment.author_avatar || `https://ui-avatars.com/api/?name=${comment.author_fullname || comment.author}&background=random`} />
+                        <AvatarFallback>{(comment.author_fullname || comment.author)?.substring(0, 2)}</AvatarFallback>
                       </Avatar>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <div className="font-medium">{comment.author}</div>
+                          <div className="font-medium">{comment.author_fullname || comment.author}</div>
                           <div className="text-xs text-muted-foreground">
                             {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                           </div>
@@ -196,26 +302,11 @@ const BlogDetail = () => {
                 </Card>
               ))}
               
-              {/* Mock initial comment */}
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-4">
-                    <Avatar>
-                      <AvatarImage src={`https://ui-avatars.com/api/?name=Jane%20Doe&background=random`} />
-                      <AvatarFallback>JD</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="font-medium">Jane Doe</div>
-                        <div className="text-xs text-muted-foreground">2 ngày trước</div>
-                      </div>
-                      <p className="text-sm">
-                        Bài viết rất hay và đầy đủ thông tin. Tôi đặc biệt thích phần về xu hướng mới trong học trực tuyến, đã cho tôi nhiều góc nhìn mới về lĩnh vực này.
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {comments.length === 0 && (
+                <div className="text-center py-6">
+                  <p className="text-muted-foreground">Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

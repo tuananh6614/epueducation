@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { featuredBlogPosts } from '@/data/mockData';
 import { formatDistanceToNow } from 'date-fns';
 import { BlogPost } from '@/types';
 import SectionHeading from '@/components/ui/section-heading';
@@ -25,38 +25,104 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
   const { toast } = useToast();
   const checkAuth = useAuthCheck();
 
-  const handleLike = () => {
+  useEffect(() => {
+    // Check if user has liked this post
+    const checkLikeStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        
+        const response = await fetch(`http://localhost:5000/api/likes/check?post_id=${post.post_id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        const data = await response.json();
+        if (data.success) {
+          setLiked(data.liked);
+        }
+      } catch (error) {
+        console.error('Error checking like status:', error);
+      }
+    };
+    
+    checkLikeStatus();
+  }, [post.post_id]);
+
+  const handleLike = async () => {
     if (!checkAuth('thích bài viết')) return;
-    setLiked(!liked);
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('http://localhost:5000/api/likes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ post_id: post.post_id })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setLiked(data.liked);
+        toast({
+          title: "Thành công",
+          description: data.liked ? "Đã thích bài viết" : "Đã bỏ thích bài viết",
+        });
+      }
+    } catch (error) {
+      console.error('Error liking post:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể thích bài viết, vui lòng thử lại sau",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleComment = (e: React.FormEvent) => {
+  const handleComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!checkAuth('bình luận')) return;
     if (!comment.trim()) return;
     
-    const userString = localStorage.getItem('user');
-    const user = userString ? JSON.parse(userString) : null;
-    
-    if (!user) return;
-    
-    setComments([
-      ...comments, 
-      {
-        id: comments.length + 1,
-        text: comment,
-        author: user.username,
-        author_fullname: user.full_name || user.username,
-        author_avatar: user.profile_picture || `https://ui-avatars.com/api/?name=${user.full_name || user.username}&background=random`,
-        created_at: new Date().toISOString()
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('http://localhost:5000/api/blog/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          content: comment,
+          post_id: post.post_id
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setComments([data.data, ...comments]);
+        setComment('');
+        
+        toast({
+          title: "Thành công",
+          description: "Bình luận của bạn đã được đăng",
+        });
       }
-    ]);
-    setComment('');
-    
-    toast({
-      title: "Thành công",
-      description: "Bình luận của bạn đã được đăng",
-    });
+    } catch (error) {
+      console.error('Error posting comment:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể đăng bình luận, vui lòng thử lại sau",
+        variant: "destructive",
+      });
+    }
   };
 
   // Function to get author display name
@@ -89,7 +155,9 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
       
       {/* Post Content */}
       <CardContent className="p-4 pt-3">
-        <h3 className="text-lg font-medium mb-2">{post.title}</h3>
+        <Link to={`/blog/${post.post_id}`}>
+          <h3 className="text-lg font-medium mb-2 hover:text-primary transition-colors">{post.title}</h3>
+        </Link>
         <p className="text-muted-foreground mb-4">
           {post.content}
         </p>
@@ -107,10 +175,10 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
         {/* Post Stats */}
         <div className="flex justify-between text-sm text-muted-foreground border-t border-b py-2 mb-2">
           <div>
-            {liked ? '1' : '0'} lượt thích
+            {post.likes_count || 0} lượt thích
           </div>
           <div>
-            {comments.length + post.comments_count} bình luận
+            {post.comments_count || 0} bình luận
           </div>
         </div>
         
@@ -121,7 +189,7 @@ const BlogPostCard = ({ post }: { post: BlogPost }) => {
             className={`flex-1 ${liked ? 'text-primary' : ''}`} 
             onClick={handleLike}
           >
-            <ThumbsUp className="mr-2 h-5 w-5" />
+            <ThumbsUp className={`mr-2 h-5 w-5 ${liked ? 'fill-primary' : ''}`} />
             Thích
           </Button>
           <Button 
@@ -247,7 +315,7 @@ const QuickPostForm = ({ onPostCreate }: { onPostCreate: (post: BlogPost) => voi
     }
   }, []);
   
-  const handleQuickPost = (e: React.FormEvent) => {
+  const handleQuickPost = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!checkAuth('đăng bài')) {
@@ -256,72 +324,89 @@ const QuickPostForm = ({ onPostCreate }: { onPostCreate: (post: BlogPost) => voi
     
     if (!postContent.trim()) return;
     
-    if (!userData) {
-      return;
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('http://localhost:5000/api/blog/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          title: postContent.substring(0, 50) + (postContent.length > 50 ? '...' : ''),
+          content: postContent 
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        onPostCreate(data.data);
+        setPostContent('');
+        
+        toast({
+          title: "Thành công",
+          description: "Bài viết của bạn đã được đăng",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể đăng bài viết, vui lòng thử lại sau",
+        variant: "destructive",
+      });
     }
-    
-    // Create a new post
-    const newPostObj: BlogPost = {
-      post_id: Math.floor(Math.random() * 1000),
-      user_id: userData.id,
-      title: postContent.substring(0, 50) + (postContent.length > 50 ? '...' : ''),
-      content: postContent,
-      created_at: new Date().toISOString(),
-      author: userData.username,
-      author_fullname: userData.full_name || userData.username,
-      author_avatar: userData.profile_picture || `https://ui-avatars.com/api/?name=${userData.full_name || userData.username}&background=random`,
-      excerpt: postContent.substring(0, 150) + '...',
-      thumbnail: '',
-      comments_count: 0
-    };
-    
-    onPostCreate(newPostObj);
-    setPostContent('');
-    
-    toast({
-      title: "Thành công",
-      description: "Bài viết của bạn đã được đăng",
-    });
   };
   
-  const handleCreatePost = (e: React.FormEvent) => {
+  const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!checkAuth('đăng bài')) {
       return;
     }
     
-    if (!userData) {
-      return;
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('http://localhost:5000/api/blog/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ 
+          title: newPost.title,
+          content: newPost.content,
+          thumbnail: newPost.thumbnail || null
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        onPostCreate(data.data);
+        setIsCreateOpen(false);
+        setNewPost({
+          title: '',
+          content: '',
+          thumbnail: ''
+        });
+        
+        toast({
+          title: "Thành công",
+          description: "Bài viết của bạn đã được đăng",
+        });
+      }
+    } catch (error) {
+      console.error('Error creating post:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể đăng bài viết, vui lòng thử lại sau",
+        variant: "destructive",
+      });
     }
-    
-    // Create a new post
-    const newPostObj: BlogPost = {
-      post_id: Math.floor(Math.random() * 1000),
-      user_id: userData.id,
-      title: newPost.title,
-      content: newPost.content,
-      created_at: new Date().toISOString(),
-      author: userData.username,
-      author_fullname: userData.full_name || userData.username,
-      author_avatar: userData.profile_picture || `https://ui-avatars.com/api/?name=${userData.full_name || userData.username}&background=random`,
-      excerpt: newPost.content?.substring(0, 150) + '...',
-      thumbnail: newPost.thumbnail || '',
-      comments_count: 0
-    };
-    
-    onPostCreate(newPostObj);
-    setIsCreateOpen(false);
-    setNewPost({
-      title: '',
-      content: '',
-      thumbnail: ''
-    });
-    
-    toast({
-      title: "Thành công",
-      description: "Bài viết của bạn đã được đăng",
-    });
   };
   
   const openCreateDialog = () => {
@@ -426,35 +511,40 @@ const QuickPostForm = ({ onPostCreate }: { onPostCreate: (post: BlogPost) => voi
 
 const Blog = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
   
   useEffect(() => {
-    // Add full_name and profile_picture to the mock data
-    const enhancedPosts = featuredBlogPosts.map(post => ({
-      ...post,
-      author_fullname: post.author,
-      author_avatar: `https://ui-avatars.com/api/?name=${post.author}&background=random`
-    }));
-    
-    setPosts(enhancedPosts);
-    
-    // In a real application, we would fetch from the API here
-    // The fetch would look something like this:
-    /*
+    // Fetch posts from API
     const fetchPosts = async () => {
       try {
+        setLoading(true);
         const response = await fetch('http://localhost:5000/api/blog/posts');
         const data = await response.json();
+        
         if (data.success) {
           setPosts(data.data);
+        } else {
+          toast({
+            title: "Lỗi",
+            description: "Không thể tải bài viết, vui lòng thử lại sau",
+            variant: "destructive",
+          });
         }
       } catch (error) {
         console.error('Error fetching blog posts:', error);
+        toast({
+          title: "Lỗi",
+          description: "Không thể kết nối đến máy chủ, vui lòng thử lại sau",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
       }
     };
     
     fetchPosts();
-    */
-  }, []);
+  }, [toast]);
   
   const handleAddPost = (newPost: BlogPost) => {
     setPosts([newPost, ...posts]);
@@ -475,9 +565,21 @@ const Blog = () => {
         
         {/* Blog Posts List */}
         <div className="mt-6">
-          {posts.map((post) => (
-            <BlogPostCard key={post.post_id} post={post} />
-          ))}
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Đang tải bài viết...</p>
+            </div>
+          ) : posts.length > 0 ? (
+            posts.map((post) => (
+              <BlogPostCard key={post.post_id} post={post} />
+            ))
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-xl font-medium mb-2">Chưa có bài viết nào</p>
+              <p className="text-muted-foreground">Hãy là người đầu tiên chia sẻ kiến thức với cộng đồng!</p>
+            </div>
+          )}
         </div>
       </div>
     </Layout>
