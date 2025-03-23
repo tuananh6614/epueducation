@@ -5,6 +5,23 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Function to convert YouTube URL to embed format
+const formatYouTubeUrl = (url) => {
+  if (!url) return null;
+
+  // Check if it's a YouTube URL
+  const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+  const match = url.match(youtubeRegex);
+  
+  if (match && match[1]) {
+    // Return the embed URL format
+    return `https://www.youtube.com/embed/${match[1]}`;
+  }
+  
+  // If not a YouTube URL, return as is
+  return url;
+};
+
 // Get a specific lesson
 router.get('/:courseId/lessons/:lessonId', async (req, res) => {
   try {
@@ -27,6 +44,15 @@ router.get('/:courseId/lessons/:lessonId', async (req, res) => {
     
     // Handle different video field names
     const lesson = lessons[0];
+    
+    // Format video URLs if they exist
+    if (lesson.video_url) {
+      lesson.video_url = formatYouTubeUrl(lesson.video_url);
+    }
+    
+    if (lesson.video_link) {
+      lesson.video_link = formatYouTubeUrl(lesson.video_link);
+    }
     
     // If video_url is present but video_link is not, add video_link field for consistency
     if (lesson.video_url && !lesson.video_link) {

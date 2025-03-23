@@ -54,6 +54,10 @@ const fetchEnrollmentStatus = async (courseId: string): Promise<boolean> => {
   }
 };
 
+const hasValidVideoUrl = (lesson: any): boolean => {
+  return Boolean(lesson.video_link || lesson.video_url);
+}
+
 const LessonView = () => {
   const { courseId, lessonId } = useParams<{ courseId: string, lessonId: string }>();
   const { toast } = useToast();
@@ -149,6 +153,9 @@ const LessonView = () => {
     );
   }
   
+  const hasVideo = hasValidVideoUrl(lesson);
+  const videoUrl = lesson.video_link || lesson.video_url;
+  
   return (
     <Layout>
       <div className="container mx-auto px-4 py-8">
@@ -163,13 +170,13 @@ const LessonView = () => {
           <div className="lg:col-span-2">
             <h1 className="text-2xl font-medium mb-4">{lesson.title}</h1>
             
-            <Tabs defaultValue="content">
+            <Tabs defaultValue={hasVideo ? "video" : "content"}>
               <TabsList className="mb-4">
                 <TabsTrigger value="content" className="flex items-center gap-2">
                   <BookOpen className="h-4 w-4" />
                   Nội dung
                 </TabsTrigger>
-                {(lesson.video_link || lesson.video_url) && (
+                {hasVideo && (
                   <TabsTrigger value="video" className="flex items-center gap-2">
                     <Video className="h-4 w-4" />
                     Video
@@ -189,27 +196,21 @@ const LessonView = () => {
                 </Card>
               </TabsContent>
               
-              <TabsContent value="video" className="animate-fade-in">
-                {(lesson.video_link || lesson.video_url) ? (
+              {hasVideo && (
+                <TabsContent value="video" className="animate-fade-in">
                   <div className="aspect-video rounded-lg overflow-hidden bg-black">
                     <iframe
                       width="100%"
                       height="100%"
-                      src={lesson.video_link || lesson.video_url}
+                      src={videoUrl}
                       title={lesson.title}
                       frameBorder="0"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     ></iframe>
                   </div>
-                ) : (
-                  <Card>
-                    <CardContent className="p-6">
-                      <p className="text-muted-foreground">Bài học này không có video</p>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
+                </TabsContent>
+              )}
             </Tabs>
             
             <div className="flex justify-between mt-8">
