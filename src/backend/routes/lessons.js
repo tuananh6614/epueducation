@@ -5,20 +5,34 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Function to convert YouTube URL to embed format
-const formatYouTubeUrl = (url) => {
+// Function to format video URLs for embedding
+const formatVideoUrl = (url) => {
   if (!url) return null;
 
   // Check if it's a YouTube URL
   const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-  const match = url.match(youtubeRegex);
+  const youtubeMatch = url.match(youtubeRegex);
   
-  if (match && match[1]) {
-    // Return the embed URL format
-    return `https://www.youtube.com/embed/${match[1]}`;
+  if (youtubeMatch && youtubeMatch[1]) {
+    // Return the embed URL format for YouTube
+    return `https://www.youtube.com/embed/${youtubeMatch[1]}`;
   }
   
-  // If not a YouTube URL, return as is
+  // Check if it's already an embed URL
+  if (url.includes('/embed/')) {
+    return url;
+  }
+  
+  // Check if it's a Vimeo URL
+  const vimeoRegex = /vimeo\.com\/(?:video\/)?(\d+)/;
+  const vimeoMatch = url.match(vimeoRegex);
+  
+  if (vimeoMatch && vimeoMatch[1]) {
+    return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+  }
+  
+  // For other video URLs, just return as is
+  // This will handle direct video links, other embed codes, etc.
   return url;
 };
 
@@ -47,11 +61,11 @@ router.get('/:courseId/lessons/:lessonId', async (req, res) => {
     
     // Format video URLs if they exist
     if (lesson.video_url) {
-      lesson.video_url = formatYouTubeUrl(lesson.video_url);
+      lesson.video_url = formatVideoUrl(lesson.video_url);
     }
     
     if (lesson.video_link) {
-      lesson.video_link = formatYouTubeUrl(lesson.video_link);
+      lesson.video_link = formatVideoUrl(lesson.video_link);
     }
     
     // If video_url is present but video_link is not, add video_link field for consistency

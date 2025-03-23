@@ -55,8 +55,40 @@ const fetchEnrollmentStatus = async (courseId: string): Promise<boolean> => {
 };
 
 const hasValidVideoUrl = (lesson: any): boolean => {
-  return Boolean(lesson.video_link || lesson.video_url);
+  return Boolean(lesson?.video_link || lesson?.video_url);
 }
+
+const VideoPlayer = ({ videoUrl, title }: { videoUrl: string, title: string }) => {
+  const isIframe = videoUrl?.includes('embed') || videoUrl?.includes('player');
+  
+  if (isIframe) {
+    return (
+      <iframe
+        width="100%"
+        height="100%"
+        src={videoUrl}
+        title={title}
+        frameBorder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      ></iframe>
+    );
+  } else if (videoUrl) {
+    return (
+      <video 
+        width="100%" 
+        height="100%" 
+        controls 
+        src={videoUrl}
+        title={title}
+      >
+        Your browser does not support the video tag.
+      </video>
+    );
+  } else {
+    return <p className="text-center py-4">Video không khả dụng</p>;
+  }
+};
 
 const LessonView = () => {
   const { courseId, lessonId } = useParams<{ courseId: string, lessonId: string }>();
@@ -154,7 +186,7 @@ const LessonView = () => {
   }
   
   const hasVideo = hasValidVideoUrl(lesson);
-  const videoUrl = lesson.video_link || lesson.video_url;
+  const videoUrl = lesson?.video_link || lesson?.video_url;
   
   return (
     <Layout>
@@ -199,15 +231,7 @@ const LessonView = () => {
               {hasVideo && (
                 <TabsContent value="video" className="animate-fade-in">
                   <div className="aspect-video rounded-lg overflow-hidden bg-black">
-                    <iframe
-                      width="100%"
-                      height="100%"
-                      src={videoUrl}
-                      title={lesson.title}
-                      frameBorder="0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    ></iframe>
+                    <VideoPlayer videoUrl={videoUrl} title={lesson.title} />
                   </div>
                 </TabsContent>
               )}
