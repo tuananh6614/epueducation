@@ -28,7 +28,7 @@ const AddSampleCourse = () => {
     setResult({});
     
     try {
-      const response = await fetch('http://localhost:5000/api/courses/seed', {
+      const response = await fetch('http://localhost:5000/api/seed/algorithm-course', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ const AddSampleCourse = () => {
         <DialogHeader>
           <DialogTitle>Thêm khóa học mẫu</DialogTitle>
           <DialogDescription>
-            Thêm một khóa học JavaScript mẫu vào cơ sở dữ liệu để xem demo.
+            Thêm khóa học "Thuật Toán và Thiết Kế Chương Trình" mẫu vào cơ sở dữ liệu.
           </DialogDescription>
         </DialogHeader>
         

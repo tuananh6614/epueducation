@@ -9,8 +9,8 @@ const adminCheck = async (req, res, next) => {
   try {
     const userId = req.user.id;
     
-    // Only user with ID 1 (admin) can access
-    if (userId !== 1) {
+    // Only user with ID 9 (admin) can access - based on your database
+    if (userId !== 9) {
       return res.status(403).json({
         success: false,
         message: 'Bạn không có quyền thực hiện hành động này'

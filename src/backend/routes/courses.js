@@ -9,20 +9,17 @@ router.get('/', async (req, res) => {
   try {
     const connection = await createConnection();
     
-    // Get all courses with appropriate joins
     // Điều chỉnh SQL query dựa trên cấu trúc bảng thực tế
     const [courses] = await connection.execute(`
-      SELECT c.*, u.full_name AS instructorName, cat.name AS category_name,
-      (SELECT COUNT(*) FROM course_enrollments WHERE course_id = c.course_id) AS enrolled
+      SELECT c.*, u.full_name AS instructorName,
+      (SELECT COUNT(*) FROM courseenrollments WHERE course_id = c.course_id) AS enrolled
       FROM courses c
       LEFT JOIN users u ON c.user_id = u.user_id
-      LEFT JOIN categories cat ON c.category_id = cat.category_id
     `);
     
-    // Process courses to include categories as an array
+    // Process courses 
     const processedCourses = courses.map(course => ({
       ...course,
-      categories: course.category_name ? [course.category_name] : [],
       enrolled: course.enrolled || 0,
       isFeatured: Math.random() > 0.7 // Random featured status for demo
     }));
@@ -47,13 +44,12 @@ router.get('/:id', async (req, res) => {
     const { id } = req.params;
     const connection = await createConnection();
     
-    // Get course details with instructor information and category
+    // Get course details
     const [courses] = await connection.execute(`
-      SELECT c.*, u.full_name AS instructorName, cat.name AS category_name,
-      (SELECT COUNT(*) FROM course_enrollments WHERE course_id = c.course_id) AS enrolled
+      SELECT c.*, u.full_name AS instructorName,
+      (SELECT COUNT(*) FROM courseenrollments WHERE course_id = c.course_id) AS enrolled
       FROM courses c
       LEFT JOIN users u ON c.user_id = u.user_id
-      LEFT JOIN categories cat ON c.category_id = cat.category_id
       WHERE c.course_id = ?
     `, [id]);
     
@@ -88,14 +84,13 @@ router.get('/:id', async (req, res) => {
     
     await connection.end();
     
-    // Process course to include category as an array
+    // Process course
     const processedCourse = {
       ...courses[0],
-      categories: courses[0].category_name ? [courses[0].category_name] : [],
       lessons,
       quizzes,
       enrolled: courses[0].enrolled || 0,
-      duration: lessons.reduce((total, lesson) => total + (lesson.duration || 0), 0) + ' phút', // Calculate duration from lessons
+      duration: lessons.reduce((total, lesson) => total + 45, 0) + ' phút', // Assume 45 minutes per lesson
       isFeatured: Math.random() > 0.7 // Random featured status for demo
     };
     
@@ -136,7 +131,7 @@ router.post('/:id/enroll', authenticateToken, async (req, res) => {
     
     // Check if already enrolled
     const [enrollments] = await connection.execute(
-      'SELECT * FROM course_enrollments WHERE user_id = ? AND course_id = ?',
+      'SELECT * FROM courseenrollments WHERE user_id = ? AND course_id = ?',
       [userId, id]
     );
     
@@ -150,7 +145,7 @@ router.post('/:id/enroll', authenticateToken, async (req, res) => {
     
     // Enroll in course
     await connection.execute(
-      'INSERT INTO course_enrollments (user_id, course_id) VALUES (?, ?)',
+      'INSERT INTO courseenrollments (user_id, course_id) VALUES (?, ?)',
       [userId, id]
     );
     
