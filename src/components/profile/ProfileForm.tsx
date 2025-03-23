@@ -62,7 +62,8 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
         formDataToSend.append('profile_picture', profilePicture);
       }
 
-      const response = await fetch('http://localhost:5000/api/user/update', {
+      // Thay đổi từ /api/user/update thành /api/users/update
+      const response = await fetch('http://localhost:5000/api/users/update', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -33,7 +33,8 @@ const Profile = () => {
 
   const fetchUserData = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5000/api/user', {
+      // Thay đổi đường dẫn từ /api/user thành /api/users
+      const response = await fetch('http://localhost:5000/api/users', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

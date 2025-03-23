@@ -41,7 +41,8 @@ const PasswordForm = () => {
         throw new Error('Bạn chưa đăng nhập');
       }
 
-      const response = await fetch('http://localhost:5000/api/user/change-password', {
+      // Thay đổi từ /api/user/change-password thành /api/users/change-password
+      const response = await fetch('http://localhost:5000/api/users/change-password', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
