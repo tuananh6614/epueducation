@@ -1,10 +1,11 @@
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const { createConnection } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
-const { upload, uploadDir } = require('../config/upload');
+const { profileUpload: upload, uploadDir } = require('../config/upload');
 
 const router = express.Router();
 
