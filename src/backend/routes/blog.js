@@ -230,9 +230,6 @@ router.post('/comments', authenticateToken, async (req, res) => {
         });
       }
       
-      // Use the SQL from fix_comments_foreign_key.sql to update the foreign key if needed
-      // We'll do this in a separate SQL file execution
-      
       // Add comment
       const [result] = await connection.execute(`
         INSERT INTO comments (content, user_id, post_id)
@@ -256,6 +253,16 @@ router.post('/comments', authenticateToken, async (req, res) => {
       });
     } catch (err) {
       console.error('Comment operation error:', err);
+      
+      // Check if this is a foreign key constraint error
+      if (err.code === 'ER_NO_REFERENCED_ROW_2') {
+        await connection.end();
+        return res.status(400).json({
+          success: false,
+          message: 'Bài viết không tồn tại hoặc đã bị xóa'
+        });
+      }
+      
       await connection.end();
       throw err; // Re-throw to be caught by the outer catch
     }
