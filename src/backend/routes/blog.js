@@ -11,7 +11,7 @@ router.get('/posts', async (req, res) => {
     const connection = await createConnection();
     
     const [posts] = await connection.execute(`
-      SELECT p.*, u.username as author, 
+      SELECT p.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar,
       (SELECT COUNT(*) FROM comments WHERE post_id = p.post_id) as comments_count,
       (SELECT COUNT(*) FROM likes WHERE post_id = p.post_id) as likes_count
       FROM blog_posts p
@@ -43,7 +43,7 @@ router.get('/posts/:id', async (req, res) => {
     
     // Get post details
     const [posts] = await connection.execute(`
-      SELECT p.*, u.username as author
+      SELECT p.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
       FROM blog_posts p
       JOIN users u ON p.author_id = u.user_id
       WHERE p.post_id = ?
@@ -57,9 +57,9 @@ router.get('/posts/:id', async (req, res) => {
       });
     }
     
-    // Get comments
+    // Get comments with user details
     const [comments] = await connection.execute(`
-      SELECT c.*, u.username as author
+      SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
       FROM comments c
       JOIN users u ON c.user_id = u.user_id
       WHERE c.post_id = ?
@@ -110,14 +110,20 @@ router.post('/posts', authenticateToken, async (req, res) => {
       VALUES (?, ?, ?, ?, 1)
     `, [title, content, thumbnail || null, req.user.id]);
     
+    // Get the created post with author details
+    const [posts] = await connection.execute(`
+      SELECT p.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
+      FROM blog_posts p
+      JOIN users u ON p.author_id = u.user_id
+      WHERE p.post_id = ?
+    `, [result.insertId]);
+    
     await connection.end();
     
     res.status(201).json({
       success: true,
       message: 'Đăng bài thành công',
-      data: {
-        post_id: result.insertId
-      }
+      data: posts[0]
     });
   } catch (error) {
     console.error('Create post error:', error);
@@ -150,7 +156,7 @@ router.post('/comments', authenticateToken, async (req, res) => {
     
     // Get comment with author info
     const [comments] = await connection.execute(`
-      SELECT c.*, u.username as author
+      SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
       FROM comments c
       JOIN users u ON c.user_id = u.user_id
       WHERE c.comment_id = ?
