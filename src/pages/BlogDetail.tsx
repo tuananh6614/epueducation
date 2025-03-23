@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageSquare, Pencil, Send, ThumbsUp, MoreHorizontal, Reply } from 'lucide-react';
+import { Heart, MessageSquare, Pencil, Send, ThumbsUp, MoreHorizontal, Reply, Trash } from 'lucide-react';
 import { BlogPost, Comment } from '@/types';
 import { useAuthCheck } from '@/utils/authCheck';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +44,7 @@ const BlogDetail = () => {
     thumbnail: null
   });
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
+  const [showReactions, setShowReactions] = useState(false);
   
   const checkAuth = useAuthCheck();
   const { toast } = useToast();
@@ -129,6 +131,7 @@ const BlogDetail = () => {
         if (data.success) {
           setLiked(data.liked);
           setSelectedReaction(data.liked ? reaction : null);
+          setShowReactions(false);
           
           if (post) {
             setPost({
@@ -262,6 +265,55 @@ const BlogDetail = () => {
       });
     }
   };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (!checkAuth('xóa bình luận')) {
+      return;
+    }
+    
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`http://localhost:5000/api/blog/comments/${commentId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        // Remove the deleted comment from the comments array
+        setComments(comments.filter(comment => comment.comment_id !== commentId));
+        
+        if (post) {
+          setPost({
+            ...post,
+            comments_count: Math.max((post.comments_count || 0) - 1, 0)
+          });
+        }
+        
+        toast({
+          title: "Thành công",
+          description: "Bình luận đã được xóa",
+        });
+      } else {
+        toast({
+          title: "Lỗi",
+          description: data.message || "Không thể xóa bình luận",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể xóa bình luận, vui lòng thử lại sau",
+        variant: "destructive",
+      });
+    }
+  };
   
   if (loading) {
     return (
@@ -304,6 +356,15 @@ const BlogDetail = () => {
       case "angry": return "Phẫn nộ";
       default: return "Thích";
     }
+  };
+
+  const getCurrentUserId = () => {
+    const userString = localStorage.getItem('user');
+    if (userString) {
+      const user = JSON.parse(userString);
+      return user.id;
+    }
+    return null;
   };
   
   return (
@@ -359,33 +420,40 @@ const BlogDetail = () => {
             
             <Separator />
             <div className="flex items-center justify-between py-1">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    className="flex-1 flex items-center justify-center gap-2 hover:bg-accent rounded-md py-2"
-                    onClick={() => handleReaction(selectedReaction || 'like')}
+              <div className="relative flex-1">
+                <Button 
+                  variant="ghost" 
+                  className="w-full flex items-center justify-center gap-2 hover:bg-accent rounded-md py-2"
+                  onClick={() => setShowReactions(!showReactions)}
+                  onMouseEnter={() => setShowReactions(true)}
+                  onMouseLeave={() => setTimeout(() => setShowReactions(false), 300)}
+                >
+                  {selectedReaction ? (
+                    <span className="text-xl mr-1">{getEmojiByReaction(selectedReaction)}</span>
+                  ) : (
+                    <ThumbsUp className={`h-5 w-5 ${liked ? 'fill-primary text-primary' : ''}`} />
+                  )}
+                  <span>{getReactionName(selectedReaction)}</span>
+                </Button>
+                
+                {showReactions && (
+                  <div 
+                    className="absolute top-0 transform -translate-y-full left-0 flex flex-wrap gap-2 p-2 bg-background border rounded-lg shadow-lg z-10"
+                    onMouseEnter={() => setShowReactions(true)}
+                    onMouseLeave={() => setShowReactions(false)}
                   >
-                    {selectedReaction ? (
-                      <span className="text-xl mr-1">{getEmojiByReaction(selectedReaction)}</span>
-                    ) : (
-                      <ThumbsUp className={`h-5 w-5 ${liked ? 'fill-primary text-primary' : ''}`} />
-                    )}
-                    <span>{getReactionName(selectedReaction)}</span>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="flex flex-wrap gap-2 p-2" side="top">
-                  {emojiReactions.map((reaction) => (
-                    <button
-                      key={reaction.name}
-                      className="p-1 cursor-pointer text-2xl hover:scale-125 transition-transform"
-                      onClick={() => handleReaction(reaction.name)}
-                    >
-                      {reaction.emoji}
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
+                    {emojiReactions.map((reaction) => (
+                      <button
+                        key={reaction.name}
+                        className="p-2 cursor-pointer text-2xl hover:scale-125 transition-transform"
+                        onClick={() => handleReaction(reaction.name)}
+                      >
+                        {reaction.emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
               
               <Button 
                 variant="ghost" 
@@ -505,7 +573,7 @@ const BlogDetail = () => {
             </div>
             
             <div className="space-y-4">
-              {comments.map((comment) => (
+              {comments && comments.map((comment) => (
                 <div key={comment.comment_id} className="group flex gap-3">
                   <Avatar className="h-9 w-9 mt-1">
                     <AvatarImage 
@@ -534,18 +602,24 @@ const BlogDetail = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Sao chép</DropdownMenuItem>
-                        {comment.user_id === (() => {
-                          const userString = localStorage.getItem('user');
-                          if (userString) {
-                            const user = JSON.parse(userString);
-                            return user.id;
-                          }
-                          return null;
-                        })() && (
+                        <DropdownMenuItem
+                          onClick={() => {
+                            navigator.clipboard.writeText(comment.content);
+                            toast({
+                              title: "Đã sao chép",
+                              description: "Nội dung bình luận đã được sao chép",
+                            });
+                          }}
+                        >
+                          Sao chép
+                        </DropdownMenuItem>
+                        {comment.user_id === getCurrentUserId() && (
                           <>
                             <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive focus:text-destructive">
+                            <DropdownMenuItem 
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleDeleteComment(comment.comment_id)}
+                            >
                               Xóa
                             </DropdownMenuItem>
                           </>
@@ -557,7 +631,7 @@ const BlogDetail = () => {
                 </div>
               ))}
               
-              {comments.length === 0 && (
+              {(!comments || comments.length === 0) && (
                 <div className="text-center py-6">
                   <p className="text-muted-foreground">Chưa có bình luận nào. Hãy là người đầu tiên bình luận!</p>
                 </div>
