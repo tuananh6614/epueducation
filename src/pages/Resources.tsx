@@ -1,21 +1,19 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Resource } from '@/types';
 import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, Upload, Plus, CreditCard } from 'lucide-react';
+import { Download, FileText, FilePenLine, FileSpreadsheet, FileCode, CreditCard } from 'lucide-react';
 import SectionHeading from '@/components/ui/section-heading';
 import { useAuthCheck } from '@/utils/authCheck';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '@/components/ui/textarea';
 import AddSampleResource from '@/components/resources/AddSampleResource';
 
 const getResourceIcon = (type: string) => {
@@ -33,17 +31,6 @@ const getResourceIcon = (type: string) => {
   }
 };
 
-const uploadSchema = z.object({
-  title: z.string().min(3, { message: 'Tiêu đề phải có ít nhất 3 ký tự' }),
-  description: z.string().optional(),
-  price: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
-    message: 'Giá phải là số dương'
-  }),
-  file: z.instanceof(FileList).refine((files) => files.length > 0, {
-    message: 'Vui lòng chọn một file'
-  })
-});
-
 const depositSchema = z.object({
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Số tiền phải lớn hơn 0'
@@ -53,13 +40,11 @@ const depositSchema = z.object({
   account_name: z.string().min(1, { message: 'Vui lòng nhập tên chủ tài khoản' })
 });
 
-type UploadFormValues = z.infer<typeof uploadSchema>;
 type DepositFormValues = z.infer<typeof depositSchema>;
 
 const Resources = () => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [openUploadDialog, setOpenUploadDialog] = useState(false);
   const [openDepositDialog, setOpenDepositDialog] = useState(false);
   const [openPurchaseDialog, setOpenPurchaseDialog] = useState(false);
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
@@ -68,15 +53,6 @@ const Resources = () => {
   const navigate = useNavigate();
   const checkAuth = useAuthCheck();
   const { toast } = useToast();
-
-  const uploadForm = useForm<UploadFormValues>({
-    resolver: zodResolver(uploadSchema),
-    defaultValues: {
-      title: '',
-      description: '',
-      price: '0'
-    }
-  });
 
   const depositForm = useForm<DepositFormValues>({
     resolver: zodResolver(depositSchema),
@@ -137,62 +113,6 @@ const Resources = () => {
       }
     } catch (error) {
       console.error('Fetch balance error:', error);
-    }
-  };
-
-  const handleUpload = async (data: UploadFormValues) => {
-    if (!checkAuth('tải tài liệu lên')) return;
-    
-    const token = localStorage.getItem('token');
-    const formData = new FormData();
-    
-    formData.append('title', data.title);
-    formData.append('price', data.price);
-    
-    if (data.description) {
-      formData.append('description', data.description);
-    }
-    
-    formData.append('file', data.file[0]);
-    
-    setIsLoading(true);
-    
-    try {
-      const response = await fetch('http://localhost:5000/api/resources/upload', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
-        body: formData
-      });
-      
-      const result = await response.json();
-      
-      if (result.success) {
-        toast({
-          title: 'Thành công',
-          description: 'Tải tài liệu lên thành công'
-        });
-        
-        setOpenUploadDialog(false);
-        uploadForm.reset();
-        fetchResources();
-      } else {
-        toast({
-          title: 'Lỗi',
-          description: result.message || 'Không thể tải tài liệu lên',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      console.error('Upload error:', error);
-      toast({
-        title: 'Lỗi',
-        description: 'Lỗi kết nối đến máy chủ',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -329,13 +249,6 @@ const Resources = () => {
               <span className="font-bold">{userBalance?.toLocaleString('vi-VN')}đ</span>
             </Button>
             
-            <Button 
-              onClick={() => setOpenUploadDialog(true)}
-              className="flex items-center gap-2"
-            >
-              <Upload className="h-4 w-4" /> Đăng tài liệu
-            </Button>
-            
             <AddSampleResource />
           </div>
         </div>
@@ -384,120 +297,9 @@ const Resources = () => {
         ) : (
           <div className="text-center py-12">
             <p className="text-muted-foreground mb-4">Chưa có tài liệu nào</p>
-            <Button onClick={() => setOpenUploadDialog(true)}>
-              <Plus className="mr-2 h-4 w-4" /> Đăng tài liệu đầu tiên
-            </Button>
           </div>
         )}
       </div>
-
-      <Dialog open={openUploadDialog} onOpenChange={setOpenUploadDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Đăng tài liệu mới</DialogTitle>
-            <DialogDescription>
-              Tải lên tài liệu của bạn để chia sẻ và kiếm thu nhập
-            </DialogDescription>
-          </DialogHeader>
-          
-          <Form {...uploadForm}>
-            <form onSubmit={uploadForm.handleSubmit(handleUpload)} className="space-y-6">
-              <FormField
-                control={uploadForm.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tiêu đề</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nhập tiêu đề tài liệu" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={uploadForm.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mô tả</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Mô tả ngắn về tài liệu" 
-                        {...field} 
-                        className="resize-none" 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={uploadForm.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Giá (VNĐ)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="Nhập giá tài liệu" 
-                        {...field} 
-                        min="0" 
-                        step="1000" 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={uploadForm.control}
-                name="file"
-                render={({ field: { onChange, value, ...rest } }) => (
-                  <FormItem>
-                    <FormLabel>Tài liệu</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="file" 
-                        onChange={(e) => onChange(e.target.files)}
-                        accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip,.rar"
-                        {...rest}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter className="gap-2 sm:gap-0">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setOpenUploadDialog(false)}
-                >
-                  Hủy
-                </Button>
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Đang xử lý
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="mr-2 h-4 w-4" /> Tải lên
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
 
       <Dialog open={openDepositDialog} onOpenChange={setOpenDepositDialog}>
         <DialogContent className="sm:max-w-md">
@@ -517,12 +319,13 @@ const Resources = () => {
                   <FormItem>
                     <FormLabel>Số tiền (VNĐ)</FormLabel>
                     <FormControl>
-                      <Input 
+                      <input 
                         type="number" 
                         placeholder="Nhập số tiền cần nạp" 
                         {...field} 
                         min="10000" 
-                        step="10000" 
+                        step="10000"
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       />
                     </FormControl>
                     <FormMessage />
@@ -545,7 +348,11 @@ const Resources = () => {
                   <FormItem>
                     <FormLabel>Tên ngân hàng</FormLabel>
                     <FormControl>
-                      <Input placeholder="VCB, Techcombank, MB..." {...field} />
+                      <input 
+                        placeholder="VCB, Techcombank, MB..." 
+                        {...field}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -559,7 +366,11 @@ const Resources = () => {
                   <FormItem>
                     <FormLabel>Số tài khoản</FormLabel>
                     <FormControl>
-                      <Input placeholder="Số tài khoản của bạn" {...field} />
+                      <input 
+                        placeholder="Số tài khoản của bạn" 
+                        {...field}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -573,7 +384,11 @@ const Resources = () => {
                   <FormItem>
                     <FormLabel>Tên chủ tài khoản</FormLabel>
                     <FormControl>
-                      <Input placeholder="Tên chủ tài khoản của bạn" {...field} />
+                      <input 
+                        placeholder="Tên chủ tài khoản của bạn" 
+                        {...field}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
