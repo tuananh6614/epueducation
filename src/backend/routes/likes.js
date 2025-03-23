@@ -33,6 +33,18 @@ router.post('/', authenticateToken, async (req, res) => {
       
       const [existingLikes] = await connection.execute(query, params);
       
+      // If post_id exists, get post author
+      let postAuthorId = null;
+      if (post_id) {
+        const [postInfo] = await connection.execute(
+          'SELECT author_id FROM blog_posts WHERE post_id = ?',
+          [post_id]
+        );
+        if (postInfo.length > 0) {
+          postAuthorId = postInfo[0].author_id;
+        }
+      }
+      
       if (existingLikes.length > 0) {
         // If already liked with the same reaction, remove it
         if (existingLikes[0].reaction === reaction) {
@@ -88,6 +100,14 @@ router.post('/', authenticateToken, async (req, res) => {
             INSERT INTO likes (user_id, post_id, reaction)
             VALUES (?, ?, ?)
           `, [req.user.id, post_id, reaction || 'like']);
+          
+          // Create notification if the liker is not the post author
+          if (postAuthorId && postAuthorId !== req.user.id) {
+            await connection.execute(`
+              INSERT INTO notifications (user_id, from_user_id, post_id, type)
+              VALUES (?, ?, ?, 'like')
+            `, [postAuthorId, req.user.id, post_id]);
+          }
         } else {
           await connection.execute(`
             INSERT INTO likes (user_id, comment_id, reaction)

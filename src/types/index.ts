@@ -109,3 +109,19 @@ export interface PasswordFormData {
   newPassword: string;
   confirmPassword: string;
 }
+
+export interface Notification {
+  notification_id: number;
+  user_id: number;
+  from_user_id: number;
+  post_id: number | null;
+  comment_id: number | null;
+  type: 'like' | 'comment';
+  is_read: boolean;
+  created_at: string;
+  from_username?: string;
+  from_fullname?: string;
+  from_avatar?: string;
+  post_title?: string;
+  action_text?: string;
+}

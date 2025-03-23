@@ -1,3 +1,4 @@
+
 const express = require('express');
 const { createConnection } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
@@ -218,7 +219,7 @@ router.post('/comments', authenticateToken, async (req, res) => {
     try {
       // First, verify the post exists in blog_posts table
       const [postCheck] = await connection.execute(
-        'SELECT post_id FROM blog_posts WHERE post_id = ?', 
+        'SELECT post_id, author_id FROM blog_posts WHERE post_id = ?', 
         [post_id]
       );
       
@@ -243,6 +244,16 @@ router.post('/comments', authenticateToken, async (req, res) => {
         JOIN users u ON c.user_id = u.user_id
         WHERE c.comment_id = ?
       `, [result.insertId]);
+      
+      // Create notification for post author (if commenter is not the post author)
+      const postAuthorId = postCheck[0].author_id;
+      
+      if (postAuthorId !== req.user.id) {
+        await connection.execute(`
+          INSERT INTO notifications (user_id, from_user_id, post_id, comment_id, type)
+          VALUES (?, ?, ?, ?, 'comment')
+        `, [postAuthorId, req.user.id, post_id, result.insertId]);
+      }
       
       await connection.end();
       
