@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import LogoutConfirmation from '@/components/auth/LogoutConfirmation';
+import NotificationMenu from '@/components/notifications/NotificationMenu';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -32,7 +32,6 @@ const Navbar = () => {
     { name: 'Giới thiệu', href: '/about' },
   ];
 
-  // Track scroll position
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -42,12 +41,10 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Check authentication status on initial load and when location changes
   useEffect(() => {
     const checkAuthStatus = () => {
       const token = localStorage.getItem('token');
@@ -64,13 +61,12 @@ const Navbar = () => {
     
     checkAuthStatus();
     
-    // Add event listener for storage changes to detect logout from other components
     window.addEventListener('storage', checkAuthStatus);
     
     return () => {
       window.removeEventListener('storage', checkAuthStatus);
     };
-  }, [location.pathname]); // Re-check when route changes
+  }, [location.pathname]);
 
   const handleLogoutClick = () => {
     setShowLogoutDialog(true);
@@ -112,37 +108,40 @@ const Navbar = () => {
 
           <div className="hidden md:flex items-center gap-4">
             {isLoggedIn ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="relative h-10 w-10 rounded-full">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                      <User className="h-5 w-5 text-primary" />
+              <>
+                <NotificationMenu />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="relative h-10 w-10 rounded-full">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <div className="flex items-center justify-start gap-2 p-2">
+                      <div className="flex flex-col space-y-1 leading-none">
+                        <p className="font-medium">{user?.fullName || user?.username}</p>
+                        <p className="text-sm text-muted-foreground">{user?.email}</p>
+                      </div>
                     </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <div className="flex items-center justify-start gap-2 p-2">
-                    <div className="flex flex-col space-y-1 leading-none">
-                      <p className="font-medium">{user?.fullName || user?.username}</p>
-                      <p className="text-sm text-muted-foreground">{user?.email}</p>
-                    </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link to="/profile" className="cursor-pointer w-full">
-                      Trang cá nhân
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem 
-                    onClick={handleLogoutClick}
-                    className="text-red-500 focus:text-red-500 cursor-pointer"
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Đăng xuất</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/profile" className="cursor-pointer w-full">
+                        Trang cá nhân
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      onClick={handleLogoutClick}
+                      className="text-red-500 focus:text-red-500 cursor-pointer"
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      <span>Đăng xuất</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
             ) : (
               <>
                 <Button variant="outline" size="sm" asChild>
@@ -194,6 +193,10 @@ const Navbar = () => {
             <div className="grid gap-4 mt-2">
               {isLoggedIn ? (
                 <>
+                  <div className="flex items-center gap-2 p-2">
+                    <NotificationMenu />
+                    <span>Thông báo</span>
+                  </div>
                   <Button variant="outline" className="w-full" asChild>
                     <Link to="/profile">Trang cá nhân</Link>
                   </Button>
@@ -229,4 +232,3 @@ const Navbar = () => {
 };
 
 export default Navbar;
-
