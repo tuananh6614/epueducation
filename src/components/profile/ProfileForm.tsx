@@ -54,7 +54,7 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
 
       // Create FormData for file upload
       const formDataToSend = new FormData();
-      formDataToSend.append('username', formData.username);
+      // Không gửi username vì không thay đổi
       formDataToSend.append('email', formData.email);
       formDataToSend.append('full_name', formData.full_name);
       
@@ -119,10 +119,12 @@ const ProfileForm = ({ user, updateUser }: ProfileFormProps) => {
             id="username"
             name="username"
             value={formData.username}
-            onChange={handleChange}
+            readOnly
+            disabled
+            className="bg-gray-100 cursor-not-allowed"
             placeholder="Nhập tên người dùng"
-            required
           />
+          <p className="text-xs text-gray-500 italic">Tên người dùng không thể thay đổi</p>
         </div>
         
         <div className="space-y-2">

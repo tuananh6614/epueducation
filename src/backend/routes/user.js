@@ -1,4 +1,3 @@
-
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -51,23 +50,24 @@ router.get('/', authenticateToken, async (req, res) => {
 // Update user profile
 router.put('/update', authenticateToken, upload.single('profile_picture'), async (req, res) => {
   try {
-    const { username, email, full_name } = req.body;
+    // Loại bỏ username khỏi req.body, chỉ lấy email và full_name
+    const { email, full_name } = req.body;
     const profilePicture = req.file ? req.file.filename : null;
     
     const connection = await createConnection();
     
-    // Check if username or email is already taken by another user
-    if (username || email) {
+    // Check if email is already taken by another user
+    if (email) {
       const [existingUsers] = await connection.execute(
-        'SELECT user_id FROM users WHERE (username = ? OR email = ?) AND user_id != ?',
-        [username, email, req.user.id]
+        'SELECT user_id FROM users WHERE email = ? AND user_id != ?',
+        [email, req.user.id]
       );
       
       if (existingUsers.length > 0) {
         await connection.end();
         return res.status(400).json({
           success: false,
-          message: 'Tên người dùng hoặc email đã tồn tại'
+          message: 'Email đã tồn tại'
         });
       }
     }
@@ -89,11 +89,6 @@ router.put('/update', authenticateToken, upload.single('profile_picture'), async
     // Build update query
     let updateQuery = 'UPDATE users SET ';
     const updateValues = [];
-    
-    if (username) {
-      updateQuery += 'username = ?, ';
-      updateValues.push(username);
-    }
     
     if (email) {
       updateQuery += 'email = ?, ';
