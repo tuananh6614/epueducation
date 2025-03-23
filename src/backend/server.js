@@ -1,4 +1,3 @@
-
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
@@ -33,13 +32,49 @@ app.use('/resources', express.static(path.join(__dirname, '../../../public/resou
 app.use('/api', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/courses', coursesRoutes);
-app.use('/api/courses', lessonsRoutes); // Add lessons routes
+app.use('/api/courses', lessonsRoutes);
 app.use('/api/blog', blogRoutes);
 app.use('/api/likes', likesRoutes);
 app.use('/api/resources', resourcesRoutes);
-app.use('/api', seedDataRoutes); // Add the seed routes
-app.use('/api/migration', migrationRoutes); // Add migration routes
-app.use('/api/notifications', notificationsRoutes); // Add notifications routes
+app.use('/api', seedDataRoutes);
+app.use('/api/migration', migrationRoutes);
+app.use('/api/notifications', notificationsRoutes);
+
+// Add sample resource endpoint
+app.get('/api/add-sample-resource', async (req, res) => {
+  try {
+    const connection = await createConnection();
+    const fs = require('fs');
+    
+    // Check if sample resource file exists in resources directory
+    const resourcesDir = path.join(__dirname, '../../../public/resources');
+    const sampleFilePath = path.join(resourcesDir, 'resource-sample.pdf');
+    
+    // Create sample PDF if it doesn't exist
+    if (!fs.existsSync(sampleFilePath)) {
+      // Create a simple PDF-like file (just a placeholder)
+      fs.writeFileSync(sampleFilePath, 'This is a sample PDF resource file for JavaScript learning');
+    }
+    
+    // Read and execute the SQL file
+    const sqlFile = path.join(__dirname, './sql/add_sample_resource.sql');
+    const sql = fs.readFileSync(sqlFile, 'utf8');
+    
+    await connection.query(sql);
+    await connection.end();
+    
+    res.json({
+      success: true,
+      message: 'Sample resource added successfully'
+    });
+  } catch (error) {
+    console.error('Error adding sample resource:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error adding sample resource'
+    });
+  }
+});
 
 // Start server
 const PORT = process.env.PORT || 5000;

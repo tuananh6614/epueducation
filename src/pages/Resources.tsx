@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -17,6 +16,7 @@ import SectionHeading from '@/components/ui/section-heading';
 import { useAuthCheck } from '@/utils/authCheck';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
+import AddSampleResource from '@/components/resources/AddSampleResource';
 
 const getResourceIcon = (type: string) => {
   switch (type) {
@@ -33,7 +33,6 @@ const getResourceIcon = (type: string) => {
   }
 };
 
-// Định nghĩa schema cho form tải file
 const uploadSchema = z.object({
   title: z.string().min(3, { message: 'Tiêu đề phải có ít nhất 3 ký tự' }),
   description: z.string().optional(),
@@ -45,7 +44,6 @@ const uploadSchema = z.object({
   })
 });
 
-// Schema cho form nạp tiền
 const depositSchema = z.object({
   amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
     message: 'Số tiền phải lớn hơn 0'
@@ -71,7 +69,6 @@ const Resources = () => {
   const checkAuth = useAuthCheck();
   const { toast } = useToast();
 
-  // Form cho tải file
   const uploadForm = useForm<UploadFormValues>({
     resolver: zodResolver(uploadSchema),
     defaultValues: {
@@ -81,7 +78,6 @@ const Resources = () => {
     }
   });
 
-  // Form cho nạp tiền
   const depositForm = useForm<DepositFormValues>({
     resolver: zodResolver(depositSchema),
     defaultValues: {
@@ -92,7 +88,6 @@ const Resources = () => {
     }
   });
 
-  // Lấy danh sách tài liệu và số dư người dùng
   useEffect(() => {
     fetchResources();
     fetchUserBalance();
@@ -145,7 +140,6 @@ const Resources = () => {
     }
   };
 
-  // Xử lý tải file lên
   const handleUpload = async (data: UploadFormValues) => {
     if (!checkAuth('tải tài liệu lên')) return;
     
@@ -202,7 +196,6 @@ const Resources = () => {
     }
   };
 
-  // Xử lý nạp tiền
   const handleDeposit = async (data: DepositFormValues) => {
     if (!checkAuth('nạp tiền')) return;
     
@@ -257,7 +250,6 @@ const Resources = () => {
     }
   };
 
-  // Xử lý mua tài liệu
   const handlePurchase = async () => {
     if (!selectedResource) return;
     
@@ -290,7 +282,6 @@ const Resources = () => {
         setUserBalance(result.data.new_balance);
         setOpenPurchaseDialog(false);
         
-        // Chuyển đến trang profile để xem tài liệu đã mua
         navigate('/profile');
       } else {
         toast({
@@ -312,7 +303,6 @@ const Resources = () => {
     }
   };
 
-  // Mở dialog xác nhận mua tài liệu
   const openBuyDialog = (resource: Resource) => {
     if (checkAuth('xem thông tin mua')) {
       setSelectedResource(resource);
@@ -345,6 +335,8 @@ const Resources = () => {
             >
               <Upload className="h-4 w-4" /> Đăng tài liệu
             </Button>
+            
+            <AddSampleResource />
           </div>
         </div>
         
@@ -399,7 +391,6 @@ const Resources = () => {
         )}
       </div>
 
-      {/* Dialog tải tài liệu lên */}
       <Dialog open={openUploadDialog} onOpenChange={setOpenUploadDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -508,7 +499,6 @@ const Resources = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog nạp tiền */}
       <Dialog open={openDepositDialog} onOpenChange={setOpenDepositDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -616,7 +606,6 @@ const Resources = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog xác nhận mua tài liệu */}
       <Dialog open={openPurchaseDialog} onOpenChange={setOpenPurchaseDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
