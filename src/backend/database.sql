@@ -1,7 +1,7 @@
 
 -- Tạo cơ sở dữ liệu
-CREATE DATABASE IF NOT EXISTS learningplatform;
-USE learningplatform;
+CREATE DATABASE IF NOT EXISTS learning;
+USE learning;
 
 -- Tạo bảng Users
 CREATE TABLE IF NOT EXISTS users (

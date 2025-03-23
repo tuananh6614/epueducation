@@ -9,7 +9,7 @@ const createConnection = async () => {
       host: 'localhost',
       user: 'root',
       password: '',
-      database: 'learningplatform'
+      database: 'learning'
     });
   } catch (error) {
     // If connection fails, create the database
