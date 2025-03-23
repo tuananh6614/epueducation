@@ -1,3 +1,4 @@
+
 const express = require('express');
 const { createConnection } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
@@ -258,6 +259,85 @@ router.post('/comments', authenticateToken, async (req, res) => {
     }
   } catch (error) {
     console.error('Add comment error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Get comments for a post
+router.get('/comments/:postId', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const connection = await createConnection();
+    
+    // Get comments with user details
+    const [comments] = await connection.execute(`
+      SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
+      FROM comments c
+      JOIN users u ON c.user_id = u.user_id
+      WHERE c.post_id = ?
+      ORDER BY c.created_at DESC
+    `, [postId]);
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      data: comments
+    });
+  } catch (error) {
+    console.error('Get comments error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Delete comment
+router.delete('/comments/:id', authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const connection = await createConnection();
+    
+    // Check if comment exists and user is the author
+    const [comments] = await connection.execute(
+      'SELECT * FROM comments WHERE comment_id = ?', 
+      [id]
+    );
+    
+    if (comments.length === 0) {
+      await connection.end();
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy bình luận'
+      });
+    }
+    
+    if (comments[0].user_id !== req.user.id) {
+      await connection.end();
+      return res.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền xóa bình luận này'
+      });
+    }
+    
+    // Delete comment
+    await connection.execute(
+      'DELETE FROM comments WHERE comment_id = ?', 
+      [id]
+    );
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      message: 'Xóa bình luận thành công'
+    });
+  } catch (error) {
+    console.error('Delete comment error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Lỗi máy chủ, vui lòng thử lại sau' 

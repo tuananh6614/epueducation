@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageSquare, Pencil, Send } from 'lucide-react';
+import { Heart, MessageSquare, Pencil, Send, ThumbsUp, MoreHorizontal, Reply } from 'lucide-react';
 import { BlogPost, Comment } from '@/types';
 import { useAuthCheck } from '@/utils/authCheck';
 import { useToast } from '@/hooks/use-toast';
@@ -15,6 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Separator } from "@/components/ui/separator";
 
 // Emoji reactions
 const emojiReactions = [
@@ -58,7 +59,6 @@ const BlogDetail = () => {
           setPost(data.data);
           setComments(data.data.comments || []);
           
-          // Check if current user is the author
           const userString = localStorage.getItem('user');
           if (userString) {
             const user = JSON.parse(userString);
@@ -66,7 +66,6 @@ const BlogDetail = () => {
             setIsAuthor(isPostAuthor);
           }
           
-          // Set initial edit form values
           setEditedPost({
             title: data.data.title,
             content: data.data.content,
@@ -131,7 +130,6 @@ const BlogDetail = () => {
           setLiked(data.liked);
           setSelectedReaction(data.liked ? reaction : null);
           
-          // Update likes count
           if (post) {
             setPost({
               ...post,
@@ -237,7 +235,6 @@ const BlogDetail = () => {
         setComments([data.data, ...comments]);
         setCommentText('');
         
-        // Update comments count in post
         if (post) {
           setPost({
             ...post,
@@ -313,7 +310,6 @@ const BlogDetail = () => {
     <Layout>
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          {/* Post Header */}
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-4">{post.title}</h1>
             <div className="flex items-center gap-4 mb-6">
@@ -330,7 +326,6 @@ const BlogDetail = () => {
             </div>
           </div>
           
-          {/* Featured Image */}
           {post.thumbnail && (
             <div className="aspect-video w-full rounded-lg overflow-hidden mb-8">
               <img 
@@ -341,30 +336,43 @@ const BlogDetail = () => {
             </div>
           )}
           
-          {/* Post Content */}
           <div className="prose max-w-none mb-10">
             <p className="mb-4 text-lg whitespace-pre-wrap">
               {post.content}
             </p>
           </div>
           
-          {/* Social Interactions */}
-          <div className="flex items-center justify-between border-t border-b py-4 mb-8">
-            <div className="flex items-center gap-6">
+          <div className="flex flex-col border-t border-b py-2 mb-6">
+            <div className="flex items-center justify-between py-2">
+              <div className="flex items-center gap-2">
+                <div className="bg-primary text-white rounded-full p-1">
+                  <ThumbsUp className="h-3 w-3" />
+                </div>
+                <span className="text-sm text-muted-foreground">{post.likes_count || 0}</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {(post.comments_count || comments.length) > 0 && (
+                  <span>{post.comments_count || comments.length} bình luận</span>
+                )}
+              </div>
+            </div>
+            
+            <Separator />
+            <div className="flex items-center justify-between py-1">
               <Popover>
                 <PopoverTrigger asChild>
-                  <button 
-                    className="flex items-center gap-2 hover:text-primary transition-colors"
+                  <Button 
+                    variant="ghost" 
+                    className="flex-1 flex items-center justify-center gap-2 hover:bg-accent rounded-md py-2"
                     onClick={() => handleReaction(selectedReaction || 'like')}
                   >
                     {selectedReaction ? (
-                      <span className="text-xl">{getEmojiByReaction(selectedReaction)}</span>
+                      <span className="text-xl mr-1">{getEmojiByReaction(selectedReaction)}</span>
                     ) : (
-                      <Heart className={`h-5 w-5 ${liked ? 'fill-primary text-primary' : ''}`} />
+                      <ThumbsUp className={`h-5 w-5 ${liked ? 'fill-primary text-primary' : ''}`} />
                     )}
                     <span>{getReactionName(selectedReaction)}</span>
-                    <span className="ml-1">({post.likes_count || 0})</span>
-                  </button>
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent className="flex flex-wrap gap-2 p-2" side="top">
                   {emojiReactions.map((reaction) => (
@@ -378,119 +386,175 @@ const BlogDetail = () => {
                   ))}
                 </PopoverContent>
               </Popover>
-              <button className="flex items-center gap-2 hover:text-primary transition-colors">
+              
+              <Button 
+                variant="ghost" 
+                className="flex-1 flex items-center justify-center gap-2 hover:bg-accent rounded-md py-2"
+              >
                 <MessageSquare className="h-5 w-5" />
-                <span>{comments.length} Bình luận</span>
-              </button>
-            </div>
-            
-            {isAuthor && (
-              <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    className="flex items-center gap-2 hover:text-primary transition-colors"
-                  >
-                    <Pencil className="h-5 w-5" />
-                    <span>Chỉnh sửa</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle className="text-xl">Chỉnh sửa bài viết</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-title">Tiêu đề</Label>
-                      <Input 
-                        id="edit-title" 
-                        value={editedPost.title}
-                        onChange={(e) => setEditedPost({...editedPost, title: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-content">Nội dung</Label>
-                      <Textarea 
-                        id="edit-content" 
-                        className="min-h-32"
-                        value={editedPost.content}
-                        onChange={(e) => setEditedPost({...editedPost, content: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-thumbnail">Link ảnh (không bắt buộc)</Label>
-                      <Input 
-                        id="edit-thumbnail" 
-                        placeholder="https://example.com/image.jpg"
-                        value={editedPost.thumbnail || ''}
-                        onChange={(e) => setEditedPost({...editedPost, thumbnail: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Hủy</Button>
-                    <Button type="button" onClick={handleEditPost}>Cập nhật</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
-            )}
-          </div>
-          
-          {/* Comments Section */}
-          <div>
-            <h2 className="text-2xl font-bold mb-6">Bình luận</h2>
-            
-            {/* Comment Form */}
-            <form onSubmit={handleCommentSubmit} className="mb-8 flex gap-3 items-start">
-              <Avatar className="mt-1">
-                <AvatarImage src={`https://ui-avatars.com/api/?name=User&background=random`} />
-                <AvatarFallback>U</AvatarFallback>
-              </Avatar>
-              <div className="flex-grow relative">
-                <Input
-                  placeholder="Viết bình luận của bạn..." 
-                  className="pr-10 rounded-full"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault();
-                      handleCommentSubmit(e);
-                    }
-                  }}
-                />
-                <button
-                  type="submit"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary"
-                  disabled={!commentText.trim()}
-                >
-                  <Send className="h-5 w-5" />
-                </button>
-              </div>
-            </form>
-            
-            {/* Comments List */}
-            <div className="space-y-6">
-              {comments.map((comment) => (
-                <Card key={comment.comment_id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
-                      <Avatar>
-                        <AvatarImage src={comment.author_avatar || `https://ui-avatars.com/api/?name=${comment.author_fullname || comment.author}&background=random`} />
-                        <AvatarFallback>{(comment.author_fullname || comment.author)?.substring(0, 2)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <div className="font-medium">{comment.author_fullname || comment.author}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                          </div>
-                        </div>
-                        <p className="text-sm">{comment.content}</p>
+                <span>Bình luận</span>
+              </Button>
+              
+              {isAuthor && (
+                <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      variant="ghost" 
+                      className="flex-1 flex items-center justify-center gap-2 hover:bg-accent rounded-md py-2"
+                    >
+                      <Pencil className="h-5 w-5" />
+                      <span>Chỉnh sửa</span>
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle className="text-xl">Chỉnh sửa bài viết</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-title">Tiêu đề</Label>
+                        <Input 
+                          id="edit-title" 
+                          value={editedPost.title}
+                          onChange={(e) => setEditedPost({...editedPost, title: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-content">Nội dung</Label>
+                        <Textarea 
+                          id="edit-content" 
+                          className="min-h-32"
+                          value={editedPost.content}
+                          onChange={(e) => setEditedPost({...editedPost, content: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-thumbnail">Link ảnh (không bắt buộc)</Label>
+                        <Input 
+                          id="edit-thumbnail" 
+                          placeholder="https://example.com/image.jpg"
+                          value={editedPost.thumbnail || ''}
+                          onChange={(e) => setEditedPost({...editedPost, thumbnail: e.target.value})}
+                        />
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                    <DialogFooter>
+                      <Button type="button" variant="outline" onClick={() => setIsEditDialogOpen(false)}>Hủy</Button>
+                      <Button type="button" onClick={handleEditPost}>Cập nhật</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
+          </div>
+          
+          <div>
+            <h2 className="text-lg font-semibold mb-4">Bình luận</h2>
+            
+            <div className="mb-6 flex gap-3 items-start bg-muted/30 p-4 rounded-lg">
+              <Avatar className="mt-1">
+                <AvatarImage 
+                  src={(() => {
+                    const userString = localStorage.getItem('user');
+                    if (userString) {
+                      const user = JSON.parse(userString);
+                      return user.profile_picture || `https://ui-avatars.com/api/?name=${user.username || 'User'}&background=random`;
+                    }
+                    return `https://ui-avatars.com/api/?name=User&background=random`;
+                  })()}
+                />
+                <AvatarFallback>U</AvatarFallback>
+              </Avatar>
+              <form onSubmit={handleCommentSubmit} className="flex-grow relative">
+                <div className="flex-grow relative rounded-full bg-background overflow-hidden">
+                  <Input
+                    placeholder="Viết bình luận của bạn..." 
+                    className="pr-10 border-none shadow-none rounded-full"
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleCommentSubmit(e);
+                      }
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary disabled:text-muted-foreground disabled:cursor-not-allowed"
+                    disabled={!commentText.trim()}
+                  >
+                    <Send className="h-5 w-5" />
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            <div className="flex items-center justify-between mb-4">
+              <div className="text-sm font-medium">Phù hợp nhất</div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm">Sắp xếp</Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>Mới nhất</DropdownMenuItem>
+                  <DropdownMenuItem>Cũ nhất</DropdownMenuItem>
+                  <DropdownMenuItem>Phù hợp nhất</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            
+            <div className="space-y-4">
+              {comments.map((comment) => (
+                <div key={comment.comment_id} className="group flex gap-3">
+                  <Avatar className="h-9 w-9 mt-1">
+                    <AvatarImage 
+                      src={comment.author_avatar || `https://ui-avatars.com/api/?name=${comment.author_fullname || comment.author}&background=random`} 
+                    />
+                    <AvatarFallback>{(comment.author_fullname || comment.author)?.substring(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="bg-muted/30 rounded-2xl px-4 py-2">
+                      <div className="font-semibold text-sm">{comment.author_fullname || comment.author}</div>
+                      <p className="text-sm break-words">{comment.content}</p>
+                    </div>
+                    <div className="flex gap-4 mt-1 pl-2 text-xs">
+                      <button className="text-muted-foreground hover:text-foreground font-medium">Thích</button>
+                      <button className="text-muted-foreground hover:text-foreground font-medium">Phản hồi</button>
+                      <span className="text-muted-foreground">
+                        {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity self-start pt-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem>Sao chép</DropdownMenuItem>
+                        {comment.user_id === (() => {
+                          const userString = localStorage.getItem('user');
+                          if (userString) {
+                            const user = JSON.parse(userString);
+                            return user.id;
+                          }
+                          return null;
+                        })() && (
+                          <>
+                            <DropdownMenuItem>Chỉnh sửa</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive focus:text-destructive">
+                              Xóa
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        <DropdownMenuItem>Báo cáo</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
               ))}
               
               {comments.length === 0 && (
