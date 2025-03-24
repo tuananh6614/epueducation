@@ -27,7 +27,7 @@ const NotificationMenu = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('/api/notifications', {
+      const response = await fetch('http://localhost:5000/api/notifications', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -53,7 +53,7 @@ const NotificationMenu = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('/api/notifications/read', {
+      const response = await fetch('http://localhost:5000/api/notifications/read', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -85,7 +85,7 @@ const NotificationMenu = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch('/api/notifications/read-all', {
+      const response = await fetch('http://localhost:5000/api/notifications/read-all', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -179,24 +179,26 @@ const NotificationMenu = () => {
                 >
                   <div className={`flex p-4 hover:bg-accent ${!notification.is_read ? 'bg-accent/50' : ''}`}>
                     <div className="mr-3 h-10 w-10 overflow-hidden rounded-full">
-                      {notification.from_avatar ? (
+                      {notification.from_avatar || (notification.from_user?.profile_picture) ? (
                         <img 
-                          src={notification.from_avatar} 
-                          alt={notification.from_username} 
+                          src={notification.from_avatar || notification.from_user?.profile_picture} 
+                          alt={notification.from_username || notification.from_user?.username || 'User'} 
                           className="h-full w-full object-cover" 
                         />
                       ) : (
                         <div className="flex h-full w-full items-center justify-center bg-primary/10 text-primary">
-                          {(notification.from_username || 'User').substring(0, 1).toUpperCase()}
+                          {(notification.from_username || notification.from_user?.username || 'User').substring(0, 1).toUpperCase()}
                         </div>
                       )}
                     </div>
                     <div className="flex-1 space-y-1">
                       <p className="text-sm">
-                        <span className="font-medium">{notification.from_fullname || notification.from_username}</span>{' '}
-                        {notification.action_text}
+                        <span className="font-medium">{notification.from_fullname || notification.from_user?.full_name || notification.from_username || notification.from_user?.username}</span>{' '}
+                        {notification.action_text || notification.message}
                       </p>
-                      <p className="text-xs text-muted-foreground">"{notification.post_title}"</p>
+                      {notification.post_title && (
+                        <p className="text-xs text-muted-foreground">"{notification.post_title}"</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(notification.created_at), { 
                           addSuffix: true,

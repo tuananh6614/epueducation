@@ -63,6 +63,7 @@ export interface Resource {
   created_at: string;
   is_purchased?: boolean;
   preview_link?: string;
+  resource_type?: string; // Added missing property
 }
 
 export interface BlogPost {
@@ -83,6 +84,7 @@ export interface BlogPost {
   video_url?: string | null;
   comments?: Comment[];
   reactions?: {reaction: string, count: number}[];
+  excerpt?: string; // Added missing property
 }
 
 export interface Comment {
@@ -114,6 +116,12 @@ export interface Notification {
     full_name: string;
     profile_picture: string;
   };
+  // Adding missing properties from the backend
+  from_avatar?: string;
+  from_username?: string;
+  from_fullname?: string;
+  action_text?: string;
+  post_title?: string;
 }
 
 export interface Transaction {
@@ -141,4 +149,23 @@ export interface PaymentHistory {
   status: 'pending' | 'completed' | 'failed' | 'refunded';
   admin_note?: string;
   created_at: string;
+}
+
+// Add Purchase interface that was missing
+export interface Purchase {
+  purchase_id: number;
+  user_id: number;
+  resource_id: number;
+  purchase_date: string;
+  amount: number;
+  status: 'completed' | 'pending' | 'failed';
+}
+
+// Add extended Course interface with optional properties used in components
+export interface ExtendedCourse extends Course {
+  categories?: string[];
+  enrolled?: number;
+  duration?: string;
+  instructorName?: string;
+  isFeatured?: boolean;
 }

@@ -35,6 +35,13 @@ const CourseCard = ({ course }: CourseCardProps) => {
     navigate(`/courses/${course.course_id}`);
   };
 
+  // Safely access properties that might not exist on the Course type
+  const courseCategories = (course as any).categories || [];
+  const isFeatured = (course as any).isFeatured || false;
+  const enrolledCount = (course as any).enrolled || 0;
+  const courseDuration = (course as any).duration || '30+ hours';
+  const instructorName = (course as any).instructorName || course.instructor_name || 'Instructor';
+
   return (
     <Link to={`/courses/${course.course_id}`} onClick={handleEnrollClick}>
       <Card className="group overflow-hidden transition-all duration-300 hover:shadow-xl h-full glass">
@@ -52,7 +59,7 @@ const CourseCard = ({ course }: CourseCardProps) => {
             }`}
             onLoad={() => setImageLoaded(true)}
           />
-          {course.isFeatured && (
+          {isFeatured && (
             <Badge className="absolute top-3 left-3 bg-primary/90 hover:bg-primary">
               Featured
             </Badge>
@@ -63,7 +70,7 @@ const CourseCard = ({ course }: CourseCardProps) => {
         </div>
         <CardContent className="p-5">
           <div className="flex items-center gap-2 mb-3">
-            {course.categories?.slice(0, 2).map((category) => (
+            {courseCategories.slice(0, 2).map((category: string) => (
               <Badge key={category} variant="outline" className="bg-muted/50">
                 {category}
               </Badge>
@@ -76,14 +83,14 @@ const CourseCard = ({ course }: CourseCardProps) => {
             {course.description}
           </p>
           <div className="flex items-center justify-between text-sm">
-            <div className="text-muted-foreground">{course.enrolled || 0} students</div>
+            <div className="text-muted-foreground">{enrolledCount} students</div>
           </div>
         </CardContent>
         <CardFooter className="px-5 pb-5 pt-0 flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            {course.duration || '30+ hours'}
+            {courseDuration}
           </div>
-          <div className="text-sm font-medium">By {course.instructorName || 'Instructor'}</div>
+          <div className="text-sm font-medium">By {instructorName}</div>
         </CardFooter>
       </Card>
     </Link>
