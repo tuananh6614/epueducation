@@ -1,4 +1,3 @@
-
 const express = require('express');
 const { createConnection } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
@@ -59,16 +58,25 @@ router.get('/posts/:id', async (req, res) => {
     
     // Get comments with user details
     const [comments] = await connection.execute(`
-      SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
+      SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar,
+             (SELECT COUNT(*) FROM likes WHERE comment_id = c.comment_id) as likes_count
       FROM comments c
       JOIN users u ON c.user_id = u.user_id
       WHERE c.post_id = ?
       ORDER BY c.created_at DESC
     `, [id]);
     
-    // Get likes count
+    // Get likes count và reactions
     const [likesCount] = await connection.execute(`
       SELECT COUNT(*) as count FROM likes WHERE post_id = ?
+    `, [id]);
+    
+    // Get reaction counts by type
+    const [reactions] = await connection.execute(`
+      SELECT reaction, COUNT(*) as count 
+      FROM likes 
+      WHERE post_id = ? 
+      GROUP BY reaction
     `, [id]);
     
     await connection.end();
@@ -78,7 +86,8 @@ router.get('/posts/:id', async (req, res) => {
       data: {
         ...posts[0],
         comments,
-        likes_count: likesCount[0].count
+        likes_count: likesCount[0].count,
+        reactions
       }
     });
   } catch (error) {
@@ -90,10 +99,10 @@ router.get('/posts/:id', async (req, res) => {
   }
 });
 
-// Create post
+// Create post with support for images and videos
 router.post('/posts', authenticateToken, async (req, res) => {
   try {
-    const { title, content, thumbnail } = req.body;
+    const { title, content, thumbnail, video_url, has_video } = req.body;
     
     if (!title || !content) {
       return res.status(400).json({
@@ -104,13 +113,13 @@ router.post('/posts', authenticateToken, async (req, res) => {
     
     const connection = await createConnection();
     
-    // Create post
+    // Tạo bài viết với hỗ trợ video
     const [result] = await connection.execute(`
-      INSERT INTO blog_posts (title, content, thumbnail, author_id, is_published)
-      VALUES (?, ?, ?, ?, 1)
-    `, [title, content, thumbnail || null, req.user.id]);
+      INSERT INTO blog_posts (title, content, thumbnail, author_id, is_published, video_url, has_video)
+      VALUES (?, ?, ?, ?, 1, ?, ?)
+    `, [title, content, thumbnail || null, req.user.id, video_url || null, has_video || 0]);
     
-    // Get the created post with author details
+    // Lấy thông tin bài viết vừa tạo
     const [posts] = await connection.execute(`
       SELECT p.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
       FROM blog_posts p
@@ -217,7 +226,7 @@ router.post('/comments', authenticateToken, async (req, res) => {
     const connection = await createConnection();
     
     try {
-      // First, verify the post exists in blog_posts table
+      // Kiểm tra bài viết tồn tại
       const [postCheck] = await connection.execute(
         'SELECT post_id, author_id FROM blog_posts WHERE post_id = ?', 
         [post_id]
@@ -231,13 +240,13 @@ router.post('/comments', authenticateToken, async (req, res) => {
         });
       }
       
-      // Add comment
+      // Thêm bình luận
       const [result] = await connection.execute(`
         INSERT INTO comments (content, user_id, post_id)
         VALUES (?, ?, ?)
       `, [content, req.user.id, post_id]);
       
-      // Get comment with author info
+      // Lấy thông tin bình luận vừa thêm kèm thông tin người dùng
       const [comments] = await connection.execute(`
         SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
         FROM comments c
@@ -245,14 +254,20 @@ router.post('/comments', authenticateToken, async (req, res) => {
         WHERE c.comment_id = ?
       `, [result.insertId]);
       
-      // Create notification for post author (if commenter is not the post author)
+      // Tạo thông báo cho chủ bài viết (nếu người bình luận không phải là chủ bài viết)
       const postAuthorId = postCheck[0].author_id;
       
       if (postAuthorId !== req.user.id) {
         await connection.execute(`
-          INSERT INTO notifications (user_id, from_user_id, post_id, comment_id, type)
-          VALUES (?, ?, ?, ?, 'comment')
-        `, [postAuthorId, req.user.id, post_id, result.insertId]);
+          INSERT INTO notifications (user_id, from_user_id, post_id, comment_id, type, message)
+          VALUES (?, ?, ?, ?, 'comment', ?)
+        `, [
+          postAuthorId, 
+          req.user.id, 
+          post_id, 
+          result.insertId, 
+          `đã bình luận về bài viết của bạn`
+        ]);
       }
       
       await connection.end();
@@ -265,7 +280,7 @@ router.post('/comments', authenticateToken, async (req, res) => {
     } catch (err) {
       console.error('Comment operation error:', err);
       
-      // Check if this is a foreign key constraint error
+      // Kiểm tra lỗi khóa ngoại
       if (err.code === 'ER_NO_REFERENCED_ROW_2') {
         await connection.end();
         return res.status(400).json({
@@ -275,7 +290,7 @@ router.post('/comments', authenticateToken, async (req, res) => {
       }
       
       await connection.end();
-      throw err; // Re-throw to be caught by the outer catch
+      throw err; // Re-throw để bắt ở catch ngoài
     }
   } catch (error) {
     console.error('Add comment error:', error);

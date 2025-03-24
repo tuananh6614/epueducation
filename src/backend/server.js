@@ -21,7 +21,8 @@ const app = express();
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(bodyParser.json({ limit: '50mb' })); // Tăng kích thước giới hạn cho body
+app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static files from the public folder
 app.use(express.static(path.join(__dirname, '../../public')));
@@ -29,6 +30,36 @@ app.use(express.static(path.join(__dirname, '../../public')));
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../../../public/uploads')));
 app.use('/resources', express.static(path.join(__dirname, '../../../public/resources')));
+app.use('/lovable-uploads', express.static(path.join(__dirname, '../../../public/lovable-uploads')));
+
+// Tạo bảng nếu chưa tồn tại khi khởi động server
+const initDatabase = async () => {
+  try {
+    const connection = await createConnection();
+    console.log('Connected to database');
+    
+    // Thực hiện các migration nếu cần
+    // Ví dụ: thêm cột vào bảng notifications nếu chưa có
+    try {
+      await connection.execute(`
+        ALTER TABLE notifications 
+        ADD COLUMN IF NOT EXISTS from_user_id INT NULL,
+        ADD COLUMN IF NOT EXISTS post_id INT NULL,
+        ADD COLUMN IF NOT EXISTS comment_id INT NULL
+      `);
+      console.log('Checked and updated notifications table structure');
+    } catch (e) {
+      console.error('Error updating notifications table:', e);
+    }
+    
+    await connection.end();
+  } catch (error) {
+    console.error('Database initialization error:', error);
+  }
+};
+
+// Gọi hàm khởi tạo database
+initDatabase();
 
 // Routes
 app.use('/api', authRoutes);

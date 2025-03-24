@@ -17,8 +17,8 @@ router.get('/', authenticateToken, async (req, res) => {
         u.profile_picture as from_avatar,
         p.title as post_title,
         CASE 
-          WHEN n.type = 'like' THEN 'đã thích bài viết của bạn'
-          WHEN n.type = 'comment' THEN 'đã bình luận bài viết của bạn'
+          WHEN n.type = 'like' THEN n.message
+          WHEN n.type = 'comment' THEN n.message
           WHEN n.type = 'system' THEN n.message
           ELSE ''
         END as action_text
@@ -30,11 +30,19 @@ router.get('/', authenticateToken, async (req, res) => {
       LIMIT 50
     `, [req.user.id]);
     
+    // Đếm số thông báo chưa đọc
+    const [unreadCount] = await connection.execute(`
+      SELECT COUNT(*) as count 
+      FROM notifications 
+      WHERE user_id = ? AND is_read = FALSE
+    `, [req.user.id]);
+    
     await connection.end();
     
     res.json({
       success: true,
-      data: notifications
+      data: notifications,
+      unread_count: unreadCount[0].count
     });
   } catch (error) {
     console.error('Get notifications error:', error);
@@ -62,18 +70,45 @@ router.put('/read', authenticateToken, async (req, res) => {
     // Create placeholders for the SQL query
     const placeholders = notification_ids.map(() => '?').join(',');
     
+    // Kiểm tra các thông báo thuộc về người dùng
+    const [notifications] = await connection.execute(`
+      SELECT notification_id 
+      FROM notifications 
+      WHERE notification_id IN (${placeholders}) AND user_id = ?
+    `, [...notification_ids, req.user.id]);
+    
+    if (notifications.length === 0) {
+      await connection.end();
+      return res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy thông báo nào'
+      });
+    }
+    
+    // Lấy các ID thông báo hợp lệ
+    const validIds = notifications.map(n => n.notification_id);
+    const validPlaceholders = validIds.map(() => '?').join(',');
+    
+    // Cập nhật các thông báo là đã đọc
     await connection.execute(`
       UPDATE notifications
       SET is_read = TRUE
-      WHERE notification_id IN (${placeholders})
-      AND user_id = ?
-    `, [...notification_ids, req.user.id]);
+      WHERE notification_id IN (${validPlaceholders})
+    `, [...validIds]);
+    
+    // Lấy số lượng thông báo chưa đọc còn lại
+    const [unreadCount] = await connection.execute(`
+      SELECT COUNT(*) as count 
+      FROM notifications 
+      WHERE user_id = ? AND is_read = FALSE
+    `, [req.user.id]);
     
     await connection.end();
     
     res.json({
       success: true,
-      message: 'Đã đánh dấu thông báo là đã đọc'
+      message: 'Đã đánh dấu thông báo là đã đọc',
+      unread_count: unreadCount[0].count
     });
   } catch (error) {
     console.error('Mark notifications as read error:', error);
@@ -99,10 +134,37 @@ router.put('/read-all', authenticateToken, async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Đã đánh dấu tất cả thông báo là đã đọc'
+      message: 'Đã đánh dấu tất cả thông báo là đã đọc',
+      unread_count: 0
     });
   } catch (error) {
     console.error('Mark all notifications as read error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Lỗi máy chủ, vui lòng thử lại sau' 
+    });
+  }
+});
+
+// Lấy số lượng thông báo chưa đọc
+router.get('/unread-count', authenticateToken, async (req, res) => {
+  try {
+    const connection = await createConnection();
+    
+    const [result] = await connection.execute(`
+      SELECT COUNT(*) as count 
+      FROM notifications 
+      WHERE user_id = ? AND is_read = FALSE
+    `, [req.user.id]);
+    
+    await connection.end();
+    
+    res.json({
+      success: true,
+      count: result[0].count
+    });
+  } catch (error) {
+    console.error('Get unread count error:', error);
     res.status(500).json({ 
       success: false, 
       message: 'Lỗi máy chủ, vui lòng thử lại sau' 

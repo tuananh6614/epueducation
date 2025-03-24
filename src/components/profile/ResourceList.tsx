@@ -41,7 +41,7 @@ const ResourceList = ({ resources, purchases }: ResourceListProps) => {
         throw new Error('Bạn chưa đăng nhập');
       }
 
-      // Sửa đường dẫn API cho phù hợp với endpoint trên server
+      // Sửa đúng đường dẫn API theo cấu trúc trong backend
       const response = await fetch(`http://localhost:5000/api/resources/${resource.resource_id}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -60,11 +60,13 @@ const ResourceList = ({ resources, purchases }: ResourceListProps) => {
       const url = window.URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
-      // Use filename if available, otherwise use title + default extension
-      a.download = resource.file_url || `${resource.title || 'resource'}.pdf`;
+      // Đảm bảo filename chính xác
+      const filename = resource.file_url ? resource.file_url.split('/').pop() : `${resource.title || 'resource'}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
       
       toast.success('Tải xuống thành công', {
         description: `${resource.title} đã được tải xuống`

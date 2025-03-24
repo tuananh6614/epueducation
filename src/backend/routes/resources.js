@@ -208,11 +208,22 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
         SELECT balance FROM users WHERE user_id = ?
       `, [userId]);
       
-      const userBalance = users[0].balance;
-      console.log(`User balance: ${userBalance}`);
+      if (users.length === 0) {
+        await connection.rollback();
+        console.log('User not found');
+        return res.status(404).json({
+          success: false,
+          message: 'Người dùng không tồn tại'
+        });
+      }
+      
+      const userBalance = parseFloat(users[0].balance);
+      const resourcePrice = parseFloat(resource.price);
+      
+      console.log(`User balance: ${userBalance}, Resource price: ${resourcePrice}`);
       
       // Check if user has enough balance
-      if (parseFloat(userBalance) < parseFloat(resource.price)) {
+      if (userBalance < resourcePrice) {
         await connection.rollback();
         console.log('Insufficient balance');
         return res.status(400).json({
@@ -222,7 +233,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       }
       
       // Update user balance
-      const newBalance = parseFloat(userBalance) - parseFloat(resource.price);
+      const newBalance = userBalance - resourcePrice;
       await connection.execute(`
         UPDATE users SET balance = ? WHERE user_id = ?
       `, [newBalance, userId]);
@@ -233,7 +244,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       await connection.execute(`
         INSERT INTO resource_purchases (user_id, resource_id, price_paid)
         VALUES (?, ?, ?)
-      `, [userId, resourceId, resource.price]);
+      `, [userId, resourceId, resourcePrice]);
       
       console.log('Recorded purchase');
       
@@ -241,7 +252,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
       await connection.execute(`
         INSERT INTO transactions (user_id, amount, transaction_type, status, related_id)
         VALUES (?, ?, ?, ?, ?)
-      `, [userId, resource.price, 'resource_purchase', 'completed', resourceId]);
+      `, [userId, resourcePrice, 'resource_purchase', 'completed', resourceId]);
       
       console.log('Recorded transaction');
       
@@ -265,6 +276,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
         success: true,
         message: 'Mua tài liệu thành công',
         data: {
+          resource: resource,
           new_balance: newBalance
         }
       });
@@ -284,7 +296,7 @@ router.post('/:id/purchase', authenticateToken, async (req, res) => {
   }
 });
 
-// Download resource
+// Download resource endpoint - sửa để tương thích với client
 router.get('/:id/download', authenticateToken, async (req, res) => {
   try {
     const { id } = req.params;
@@ -337,7 +349,7 @@ router.get('/:id/download', authenticateToken, async (req, res) => {
     }
     
     // Send file for download
-    res.download(filePath, path.basename(resource.file_url));
+    res.download(filePath, resource.file_url);
   } catch (error) {
     console.error('Download resource error:', error);
     res.status(500).json({
