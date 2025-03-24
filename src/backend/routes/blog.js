@@ -1,3 +1,4 @@
+
 const express = require('express');
 const { createConnection } = require('../db');
 const { authenticateToken } = require('../middleware/auth');
@@ -56,9 +57,9 @@ router.get('/posts/:id', async (req, res) => {
       });
     }
     
-    // Get comments with user details
+    // Get comments with user details - Đảm bảo truy vấn chọn cả nội dung bình luận
     const [comments] = await connection.execute(`
-      SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar,
+      SELECT c.*, c.content as content, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar,
              (SELECT COUNT(*) FROM likes WHERE comment_id = c.comment_id) as likes_count
       FROM comments c
       JOIN users u ON c.user_id = u.user_id
@@ -66,7 +67,7 @@ router.get('/posts/:id', async (req, res) => {
       ORDER BY c.created_at DESC
     `, [id]);
     
-    // Get likes count và reactions
+    // Get likes count and reactions
     const [likesCount] = await connection.execute(`
       SELECT COUNT(*) as count FROM likes WHERE post_id = ?
     `, [id]);
@@ -80,6 +81,9 @@ router.get('/posts/:id', async (req, res) => {
     `, [id]);
     
     await connection.end();
+    
+    // Log to debug
+    console.log('Comments retrieved:', comments);
     
     res.json({
       success: true,
@@ -248,11 +252,14 @@ router.post('/comments', authenticateToken, async (req, res) => {
       
       // Lấy thông tin bình luận vừa thêm kèm thông tin người dùng
       const [comments] = await connection.execute(`
-        SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
+        SELECT c.*, c.content as content, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
         FROM comments c
         JOIN users u ON c.user_id = u.user_id
         WHERE c.comment_id = ?
       `, [result.insertId]);
+      
+      // Log to debug
+      console.log('New comment created:', comments[0]);
       
       // Tạo thông báo cho chủ bài viết (nếu người bình luận không phải là chủ bài viết)
       const postAuthorId = postCheck[0].author_id;
@@ -307,9 +314,9 @@ router.get('/comments/:postId', async (req, res) => {
     const { postId } = req.params;
     const connection = await createConnection();
     
-    // Get comments with user details
+    // Get comments with user details - Đảm bảo truy vấn chọn cả nội dung bình luận
     const [comments] = await connection.execute(`
-      SELECT c.*, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
+      SELECT c.*, c.content as content, u.username as author, u.full_name as author_fullname, u.profile_picture as author_avatar
       FROM comments c
       JOIN users u ON c.user_id = u.user_id
       WHERE c.post_id = ?
