@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatDistanceToNow } from 'date-fns';
-import { Heart, MessageSquare, Pencil, Send, ThumbsUp, MoreHorizontal, Reply, Trash } from 'lucide-react';
+import { Heart, MessageSquare, Pencil, Send, ThumbsUp, MoreHorizontal, Reply, Trash, Image, ChevronDown, ChevronUp } from 'lucide-react';
 import { BlogPost, Comment } from '@/types';
 import { useAuthCheck } from '@/utils/authCheck';
 import { useToast } from '@/hooks/use-toast';
@@ -43,6 +44,10 @@ const BlogDetail = () => {
   });
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
   const [showReactions, setShowReactions] = useState(false);
+  const [isMediaDialogOpen, setIsMediaDialogOpen] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'video'>('image');
+  const [showAllComments, setShowAllComments] = useState(false);
   
   const checkAuth = useAuthCheck();
   const { toast } = useToast();
@@ -206,6 +211,83 @@ const BlogDetail = () => {
     }
   };
   
+  const handleAddMedia = () => {
+    if (!checkAuth('thêm ảnh/video')) {
+      return;
+    }
+
+    setIsMediaDialogOpen(true);
+  };
+
+  const handleSubmitMedia = () => {
+    if (!mediaUrl.trim()) {
+      toast({
+        title: "Lỗi",
+        description: "Vui lòng nhập URL hợp lệ",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const newContent = post?.content + `\n\n${mediaType === 'image' 
+        ? `![Hình ảnh](${mediaUrl})` 
+        : `<video src="${mediaUrl}" controls width="100%"></video>`}`;
+      
+      setEditedPost({
+        ...editedPost,
+        content: newContent
+      });
+      
+      // Auto-submit the edit
+      const token = localStorage.getItem('token');
+      
+      fetch(`http://localhost:5000/api/blog/posts/${postId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          ...editedPost,
+          content: newContent
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          setPost({
+            ...post!,
+            content: newContent
+          });
+          
+          toast({
+            title: "Thành công",
+            description: `Đã thêm ${mediaType === 'image' ? 'hình ảnh' : 'video'} vào bài viết`,
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Error updating post with media:', error);
+        toast({
+          title: "Lỗi",
+          description: "Không thể thêm phương tiện, vui lòng thử lại sau",
+          variant: "destructive",
+        });
+      });
+      
+      setIsMediaDialogOpen(false);
+      setMediaUrl('');
+    } catch (error) {
+      console.error('Error adding media:', error);
+      toast({
+        title: "Lỗi",
+        description: "Không thể thêm phương tiện, vui lòng thử lại sau",
+        variant: "destructive",
+      });
+    }
+  };
+  
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -247,6 +329,9 @@ const BlogDetail = () => {
           title: "Thành công",
           description: "Bình luận của bạn đã được đăng",
         });
+
+        // Auto-expand comments when user adds a new one
+        setShowAllComments(true);
       } else {
         toast({
           title: "Lỗi",
@@ -309,6 +394,18 @@ const BlogDetail = () => {
         description: "Không thể xóa bình luận, vui lòng thử lại sau",
         variant: "destructive",
       });
+    }
+  };
+  
+  const toggleComments = () => {
+    setShowAllComments(!showAllComments);
+  };
+
+  const getVisibleComments = () => {
+    if (showAllComments || comments.length <= 3) {
+      return comments;
+    } else {
+      return comments.slice(0, 3);
     }
   };
   
@@ -395,16 +492,52 @@ const BlogDetail = () => {
           )}
           
           <div className="prose max-w-none mb-10">
-            <p className="mb-4 text-lg whitespace-pre-wrap">
-              {post.content}
-            </p>
+            <div className="mb-4 text-lg whitespace-pre-wrap">
+              {post.content.split(/!\[.*?\]\((.*?)\)/).map((part, index, array) => {
+                // If this is an even index, it's text content
+                if (index % 2 === 0) {
+                  // Check for video tags and render them properly
+                  const videoParts = part.split(/<video src="(.*?)" controls width="100%"><\/video>/);
+                  return (
+                    <React.Fragment key={`text-${index}`}>
+                      {videoParts.map((videoPart, vIndex, vArray) => {
+                        if (vIndex % 2 === 0) {
+                          return <span key={`text-part-${vIndex}`}>{videoPart}</span>;
+                        } else {
+                          return (
+                            <div key={`video-${vIndex}`} className="my-4">
+                              <video src={videoPart} controls width="100%" className="rounded-lg"></video>
+                            </div>
+                          );
+                        }
+                      })}
+                    </React.Fragment>
+                  );
+                } else {
+                  // This is an image URL
+                  return (
+                    <div key={`img-${index}`} className="my-4">
+                      <img 
+                        src={array[index]} 
+                        alt="Hình ảnh bài viết" 
+                        className="rounded-lg max-w-full"
+                      />
+                    </div>
+                  );
+                }
+              })}
+            </div>
           </div>
           
           <div className="flex flex-col border-t border-b py-2 mb-6">
             <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-2">
-                <div className="bg-primary text-white rounded-full p-1">
-                  <ThumbsUp className="h-3 w-3" />
+                <div className="bg-primary/20 text-primary rounded-full p-1.5">
+                  {selectedReaction ? (
+                    <span className="text-sm">{getEmojiByReaction(selectedReaction)}</span>
+                  ) : (
+                    <ThumbsUp className="h-3 w-3" />
+                  )}
                 </div>
                 <span className="text-sm text-muted-foreground">{post.likes_count || 0}</span>
               </div>
@@ -423,7 +556,7 @@ const BlogDetail = () => {
                   className="w-full flex items-center justify-center gap-2 hover:bg-accent rounded-md py-2"
                   onClick={() => setShowReactions(!showReactions)}
                   onMouseEnter={() => setShowReactions(true)}
-                  onMouseLeave={() => setTimeout(() => setShowReactions(false), 300)}
+                  onMouseLeave={() => setTimeout(() => setShowReactions(false), 500)}
                 >
                   {selectedReaction ? (
                     <span className="text-xl mr-1">{getEmojiByReaction(selectedReaction)}</span>
@@ -435,15 +568,16 @@ const BlogDetail = () => {
                 
                 {showReactions && (
                   <div 
-                    className="absolute top-0 transform -translate-y-full left-0 flex flex-wrap gap-2 p-2 bg-background border rounded-lg shadow-lg z-10"
+                    className="absolute bottom-full left-0 transform translate-y-[-8px] flex items-center gap-1 p-2 bg-background border rounded-full shadow-md z-10 animate-scale-in"
                     onMouseEnter={() => setShowReactions(true)}
                     onMouseLeave={() => setShowReactions(false)}
                   >
                     {emojiReactions.map((reaction) => (
                       <button
                         key={reaction.name}
-                        className="p-2 cursor-pointer text-2xl hover:scale-125 transition-transform"
+                        className="p-2 cursor-pointer text-2xl hover:scale-125 transition-transform duration-200"
                         onClick={() => handleReaction(reaction.name)}
+                        title={getReactionName(reaction.name)}
                       >
                         {reaction.emoji}
                       </button>
@@ -455,9 +589,25 @@ const BlogDetail = () => {
               <Button 
                 variant="ghost" 
                 className="flex-1 flex items-center justify-center gap-2 hover:bg-accent rounded-md py-2"
+                onClick={() => {
+                  setShowAllComments(true);
+                  // Focus on comment input
+                  setTimeout(() => {
+                    document.getElementById('comment-input')?.focus();
+                  }, 100);
+                }}
               >
                 <MessageSquare className="h-5 w-5" />
                 <span>Bình luận</span>
+              </Button>
+              
+              <Button 
+                variant="ghost" 
+                className="flex-1 flex items-center justify-center gap-2 hover:bg-accent rounded-md py-2"
+                onClick={handleAddMedia}
+              >
+                <Image className="h-5 w-5" />
+                <span>Ảnh/Video</span>
               </Button>
               
               {isAuthor && (
@@ -513,8 +663,71 @@ const BlogDetail = () => {
             </div>
           </div>
           
+          <Dialog open={isMediaDialogOpen} onOpenChange={setIsMediaDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Thêm ảnh hoặc video</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex items-center gap-4">
+                  <Button 
+                    type="button" 
+                    variant={mediaType === 'image' ? 'default' : 'outline'}
+                    onClick={() => setMediaType('image')}
+                    className="flex-1"
+                  >
+                    Ảnh
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant={mediaType === 'video' ? 'default' : 'outline'}
+                    onClick={() => setMediaType('video')}
+                    className="flex-1"
+                  >
+                    Video
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="media-url">Đường dẫn {mediaType === 'image' ? 'ảnh' : 'video'}</Label>
+                  <Input 
+                    id="media-url" 
+                    placeholder={mediaType === 'image' ? 'https://example.com/image.jpg' : 'https://example.com/video.mp4'}
+                    value={mediaUrl}
+                    onChange={(e) => setMediaUrl(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsMediaDialogOpen(false)}>Hủy</Button>
+                <Button type="button" onClick={handleSubmitMedia}>Thêm vào bài viết</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          
           <div>
-            <h2 className="text-lg font-semibold mb-4">Bình luận</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold">Bình luận</h2>
+              {comments.length > 3 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={toggleComments}
+                  className="flex items-center gap-1 text-muted-foreground"
+                >
+                  {showAllComments ? (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      <span>Thu gọn</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="h-4 w-4" />
+                      <span>Xem tất cả ({comments.length})</span>
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
             
             <div className="mb-6 flex gap-3 items-start bg-muted/30 p-4 rounded-lg">
               <Avatar className="mt-1">
@@ -533,6 +746,7 @@ const BlogDetail = () => {
               <form onSubmit={handleCommentSubmit} className="flex-grow relative">
                 <div className="flex-grow relative rounded-full bg-background overflow-hidden">
                   <Input
+                    id="comment-input"
                     placeholder="Viết bình luận của bạn..." 
                     className="pr-10 border-none shadow-none rounded-full"
                     value={commentText}
@@ -570,7 +784,7 @@ const BlogDetail = () => {
             </div>
             
             <div className="space-y-4">
-              {comments && comments.map((comment) => (
+              {getVisibleComments().map((comment) => (
                 <div key={comment.comment_id} className="group flex gap-3">
                   <Avatar className="h-9 w-9 mt-1">
                     <AvatarImage 
@@ -581,7 +795,9 @@ const BlogDetail = () => {
                   <div className="flex-1">
                     <div className="bg-muted/30 rounded-2xl px-4 py-2">
                       <div className="font-semibold text-sm">{comment.author_fullname || comment.author}</div>
-                      <p className="text-sm break-words">{comment.content}</p>
+                      {comment.content && (
+                        <p className="text-sm break-words">{comment.content}</p>
+                      )}
                     </div>
                     <div className="flex gap-4 mt-1 pl-2 text-xs">
                       <button className="text-muted-foreground hover:text-foreground font-medium">Thích</button>
@@ -601,7 +817,7 @@ const BlogDetail = () => {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           onClick={() => {
-                            navigator.clipboard.writeText(comment.content);
+                            navigator.clipboard.writeText(comment.content || '');
                             toast({
                               title: "Đã sao chép",
                               description: "Nội dung bình luận đã được sao chép",
@@ -627,6 +843,17 @@ const BlogDetail = () => {
                   </div>
                 </div>
               ))}
+              
+              {comments.length > 3 && !showAllComments && (
+                <Button
+                  variant="ghost"
+                  className="w-full text-muted-foreground hover:text-primary"
+                  onClick={() => setShowAllComments(true)}
+                >
+                  <ChevronDown className="h-4 w-4 mr-2" />
+                  Xem thêm {comments.length - 3} bình luận
+                </Button>
+              )}
               
               {(!comments || comments.length === 0) && (
                 <div className="text-center py-6">
