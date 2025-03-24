@@ -44,7 +44,8 @@ const Login = () => {
     try {
       console.log('Đang gửi yêu cầu đăng nhập:', { username, password });
       
-      const response = await fetch('http://localhost:5000/api/login', {
+      // Sửa endpoint từ /api/login thành /api/auth/login để khớp với cấu trúc API backend
+      const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
