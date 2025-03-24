@@ -23,11 +23,19 @@ router.post('/update-likes-table', authenticateToken, async (req, res) => {
     }
     
     const sql = fs.readFileSync(sqlPath, 'utf8');
-    const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
+    const statements = sql
+      .replace(/DELIMITER \/\/|DELIMITER ;/g, '') // Xóa các tuyên bố DELIMITER
+      .split(';')
+      .filter(stmt => stmt.trim() !== '');
     
     for (const statement of statements) {
       if (statement.trim()) {
-        await connection.query(statement + ';');
+        try {
+          await connection.query(statement + ';');
+        } catch (err) {
+          console.warn(`Cảnh báo khi thực thi câu lệnh: ${statement}`, err.message);
+          // Tiếp tục với câu lệnh tiếp theo ngay cả khi một câu lệnh thất bại
+        }
       }
     }
     
@@ -63,11 +71,19 @@ router.post('/update-tables-for-fixes', authenticateToken, async (req, res) => {
     }
     
     const sql = fs.readFileSync(sqlPath, 'utf8');
-    const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
+    const statements = sql
+      .replace(/DELIMITER \/\/|DELIMITER ;/g, '') // Xóa các tuyên bố DELIMITER
+      .split(';')
+      .filter(stmt => stmt.trim() !== '');
     
     for (const statement of statements) {
       if (statement.trim()) {
-        await connection.query(statement + ';');
+        try {
+          await connection.query(statement + ';');
+        } catch (err) {
+          console.warn(`Cảnh báo khi thực thi câu lệnh: ${statement}`, err.message);
+          // Tiếp tục với câu lệnh tiếp theo ngay cả khi một câu lệnh thất bại
+        }
       }
     }
     
@@ -103,11 +119,19 @@ router.post('/add-lesson-content', authenticateToken, async (req, res) => {
     }
     
     const sql = fs.readFileSync(sqlPath, 'utf8');
-    const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
+    const statements = sql
+      .replace(/DELIMITER \/\/|DELIMITER ;/g, '') // Xóa các tuyên bố DELIMITER
+      .split(';')
+      .filter(stmt => stmt.trim() !== '');
     
     for (const statement of statements) {
       if (statement.trim()) {
-        await connection.query(statement + ';');
+        try {
+          await connection.query(statement + ';');
+        } catch (err) {
+          console.warn(`Cảnh báo khi thực thi câu lệnh: ${statement}`, err.message);
+          // Tiếp tục với câu lệnh tiếp theo ngay cả khi một câu lệnh thất bại
+        }
       }
     }
     
@@ -143,27 +167,18 @@ router.post('/fix-comments', authenticateToken, async (req, res) => {
     }
     
     const sql = fs.readFileSync(sqlPath, 'utf8');
-    // Split by delimiter for stored procedures
-    const blocks = sql.split('DELIMITER');
+    const statements = sql
+      .replace(/DELIMITER \/\/|DELIMITER ;/g, '') // Xóa các tuyên bố DELIMITER
+      .split(';')
+      .filter(stmt => stmt.trim() !== '');
     
-    for (const block of blocks) {
-      if (!block.trim()) continue;
-      
-      if (block.includes('//')) {
-        // Handle DELIMITER blocks separately
-        const procedureStatements = block.split('//');
-        for (const stmt of procedureStatements) {
-          if (stmt.trim()) {
-            await connection.query(stmt);
-          }
-        }
-      } else {
-        // Handle regular statements
-        const statements = block.split(';').filter(stmt => stmt.trim() !== '');
-        for (const statement of statements) {
-          if (statement.trim()) {
-            await connection.query(statement + ';');
-          }
+    for (const statement of statements) {
+      if (statement.trim()) {
+        try {
+          await connection.query(statement + ';');
+        } catch (err) {
+          console.warn(`Cảnh báo khi thực thi câu lệnh: ${statement}`, err.message);
+          // Tiếp tục với câu lệnh tiếp theo ngay cả khi một câu lệnh thất bại
         }
       }
     }
@@ -200,15 +215,18 @@ router.post('/database-fixes', authenticateToken, async (req, res) => {
     }
     
     const sql = fs.readFileSync(sqlPath, 'utf8');
-    const statements = sql.split(';').filter(stmt => stmt.trim() !== '');
+    const statements = sql
+      .replace(/DELIMITER \/\/|DELIMITER ;/g, '') // Xóa các tuyên bố DELIMITER
+      .split(';')
+      .filter(stmt => stmt.trim() !== '');
     
     for (const statement of statements) {
       if (statement.trim()) {
         try {
           await connection.query(statement + ';');
         } catch (err) {
-          console.warn(`Warning executing statement: ${statement}`, err.message);
-          // Continue with next statement even if one fails
+          console.warn(`Cảnh báo khi thực thi câu lệnh: ${statement}`, err.message);
+          // Tiếp tục với câu lệnh tiếp theo ngay cả khi một câu lệnh thất bại
         }
       }
     }
