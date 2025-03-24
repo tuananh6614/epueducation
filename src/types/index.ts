@@ -27,6 +27,12 @@ export interface Course {
   enrolled_count?: number;
   lessons_count?: number;
   is_enrolled?: boolean;
+  // Adding missing properties that are being used in components
+  categories?: string[];
+  enrolled?: number;
+  duration?: string;
+  instructorName?: string;
+  isFeatured?: boolean;
 }
 
 export interface Lesson {
@@ -161,11 +167,9 @@ export interface Purchase {
   status: 'completed' | 'pending' | 'failed';
 }
 
-// Add extended Course interface with optional properties used in components
+// Since we've added the properties directly to the Course interface,
+// we can remove or update the ExtendedCourse interface to avoid redundancy
 export interface ExtendedCourse extends Course {
-  categories?: string[];
-  enrolled?: number;
-  duration?: string;
-  instructorName?: string;
-  isFeatured?: boolean;
+  // This extends the base Course with any additional properties
+  // that might be needed in the future
 }
