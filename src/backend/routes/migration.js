@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const { createConnection } = require('../db');
@@ -5,35 +6,12 @@ const { authenticateToken } = require('../middleware/auth');
 const fs = require('fs');
 const path = require('path');
 
-// Admin check middleware
-const adminCheck = async (req, res, next) => {
-  try {
-    const userId = req.user.id;
-    
-    // Only user with ID 1 (admin) can access - based on your database
-    if (userId !== 1) {
-      return res.status(403).json({
-        success: false,
-        message: 'Bạn không có quyền thực hiện hành động này'
-      });
-    }
-    
-    next();
-  } catch (error) {
-    console.error('Admin check error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Lỗi máy chủ, vui lòng thử lại sau'
-    });
-  }
-};
-
-// Thêm route để chạy file update_likes_table.sql
-router.post('/update-likes-table', authenticateToken, adminCheck, async (req, res) => {
+// Route to run update_likes_table.sql
+router.post('/update-likes-table', authenticateToken, async (req, res) => {
   try {
     const connection = await createConnection();
     
-    // Đọc và thực thi file SQL cho việc cập nhật bảng likes
+    // Read and execute SQL file for updating likes table
     const sqlPath = path.join(__dirname, '../sql/update_likes_table.sql');
     
     if (!fs.existsSync(sqlPath)) {
@@ -69,11 +47,11 @@ router.post('/update-likes-table', authenticateToken, adminCheck, async (req, re
 });
 
 // Run migration to update tables for fixes
-router.post('/update-tables-for-fixes', authenticateToken, adminCheck, async (req, res) => {
+router.post('/update-tables-for-fixes', authenticateToken, async (req, res) => {
   try {
     const connection = await createConnection();
     
-    // Đọc và thực thi file SQL cho việc cập nhật các bảng
+    // Read and execute SQL file for updating tables
     const sqlPath = path.join(__dirname, '../sql/update_tables_for_fixes.sql');
     
     if (!fs.existsSync(sqlPath)) {
@@ -109,7 +87,7 @@ router.post('/update-tables-for-fixes', authenticateToken, adminCheck, async (re
 });
 
 // Run migration to add content field to lessons table
-router.post('/add-lesson-content', authenticateToken, adminCheck, async (req, res) => {
+router.post('/add-lesson-content', authenticateToken, async (req, res) => {
   try {
     const connection = await createConnection();
     
